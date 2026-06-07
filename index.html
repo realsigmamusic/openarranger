@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>OpenArranger</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <header class="control-bar">
+        <div class="file-btns">
+            <button id="btn-load-style">Load Style</button>
+            <button id="btn-load-kit">Load Kit</button>
+            <button id="btn-debug">Info</button>
+        </div>
+        <div class="bpm-controls">
+            <button id="bpm-minus">-</button>
+            <input type="number" id="bpm-display" value="120" min="40" max="250" style="width: 60px; text-align: center; background: transparent; color: white; border: none; font-weight: bold; outline: none; -moz-appearance: textfield;">
+            <button id="bpm-plus">+</button>
+        </div>
+        <button id="btn-play" class="play-btn">PLAY</button>
+    </header>
+
+    <input type="file" id="input-kit"   accept=".kit"   style="display:none">
+    <input type="file" id="input-style" accept=".style" style="display:none">
+
+    <div class="info-bar">
+        <span id="kit-label">Sem kit</span>
+        <span id="beat-indicator" class="indicator">Tempo: --</span>
+        <span id="style-label">🎵 Sem estilo</span>
+    </div>
+
+    <div id="status-bar" class="status-bar">Inicializando…</div>
+
+    <div id="debug-modal" class="debug-modal" style="display:none;">
+        <div class="debug-content">
+            <button id="close-debug" class="close-btn">✕</button>
+            <h2>Diagnóstico MIDI</h2>
+            <div id="debug-info" style="font-family: monospace; font-size: 0.8rem; color: #0f0; background: #000; padding: 10px; border-radius: 4px; max-height: 60vh; overflow-y: auto; white-space: pre-wrap; word-break: break-word;"></div>
+        </div>
+    </div>
+
+    <main class="grid-container">
+        <button class="btn intro-btn"  data-section="Intro A">Intro A</button>
+        <button class="btn fill-btn"   data-section="Fill In A">Fill In A</button>
+        <button class="btn main-btn active" data-section="Main A">Main A</button>
+        <button class="btn ending-btn" data-section="Ending A">Ending A</button>
+
+        <button class="btn intro-btn"  data-section="Intro B">Intro B</button>
+        <button class="btn fill-btn"   data-section="Fill In B">Fill In B</button>
+        <button class="btn main-btn"   data-section="Main B">Main B</button>
+        <button class="btn ending-btn" data-section="Ending B">Ending B</button>
+
+        <button class="btn intro-btn"  data-section="Intro C">Intro C</button>
+        <button class="btn fill-btn"   data-section="Fill In C">Fill In C</button>
+        <button class="btn main-btn"   data-section="Main C">Main C</button>
+        <button class="btn ending-btn" data-section="Ending C">Ending C</button>
+
+        <div class="empty-cell"></div>
+        <button class="btn fill-btn"   data-section="Fill In D">Fill In D</button>
+        <button class="btn main-btn"   data-section="Main D">Main D</button>
+        <div class="empty-cell"></div>
+
+        <div class="empty-cell"></div>
+        <button class="btn break-btn"  data-section="Break">Break</button>
+        <div class="empty-cell"></div>
+        <div class="empty-cell"></div>
+    </main>
+
+    <script src="main.js"></script>
+</body>
+</html>

@@ -1,0 +1,191 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    user-select: none;
+}
+
+body {
+    background-color: #121212;
+    color: #ffffff;
+    font-family: sans-serif;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* ── HEADER ── */
+.control-bar {
+    display: flex;
+    background: #1e1e1e;
+    padding: 10px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 5px;
+    flex-shrink: 0;
+}
+
+.file-btns {
+    display: flex;
+    gap: 5px;
+}
+
+.control-bar button {
+    padding: 12px 8px;
+    background: #333;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.bpm-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #2b2b2b;
+    padding: 5px 10px;
+    border-radius: 4px;
+}
+
+#bpm-display {
+    font-weight: bold;
+    min-width: 70px;
+    text-align: center;
+}
+
+.play-btn {
+    background: #2e7d32 !important;
+    min-width: 80px;
+}
+
+.play-btn.playing {
+    background: #d32f2f !important;
+}
+
+/* ── INFO BAR (kit / beat / style) ── */
+.info-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #1a1a1a;
+    padding: 6px 12px;
+    font-size: 0.8rem;
+    color: #aaa;
+    border-bottom: 1px solid #2a2a2a;
+    flex-shrink: 0;
+}
+
+.indicator {
+    font-weight: bold;
+    color: #00e676;
+    font-size: 0.9rem;
+}
+
+/* ── STATUS BAR ── */
+.status-bar {
+    background: #111;
+    text-align: center;
+    padding: 5px 10px;
+    font-size: 0.75rem;
+    color: #888;
+    border-bottom: 1px solid #222;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex-shrink: 0;
+}
+
+/* ── GRADE ── */
+.grid-container {
+    flex: 1;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: repeat(5, 1fr);
+    gap: 8px;
+    padding: 8px;
+    min-height: 0;
+}
+
+.intro-btn  { background: #ff6f00; color: white; }
+.main-btn   { background: #1565c0; color: white; }
+.fill-btn   { background: #00838f; color: white; }
+.break-btn  { background: #c62828; color: white; }
+.ending-btn { background: #4527a0; color: white; }
+
+.btn {
+    border: none;
+    border-radius: 8px;
+    font-weight: bold;
+    font-size: 0.9rem;
+    box-shadow: 0 4px #000;
+    transition: transform 0.1s, box-shadow 0.1s;
+    cursor: pointer;
+}
+
+.btn:active {
+    transform: translateY(4px);
+    box-shadow: 0 0 #000;
+}
+
+.btn.active {
+    border: 3px solid #ffffff;
+    box-shadow: 0 0 15px #ffffff;
+}
+
+/* ── FILA DE ESPERA (Piscando Amarelo) ── */
+@keyframes pulse-queued {
+    0%   { box-shadow: 0 0 5px #ffeb3b;  border-color: #ffeb3b; }
+    50%  { box-shadow: 0 0 15px #ffeb3b; border-color: #fff176; }
+    100% { box-shadow: 0 0 5px #ffeb3b;  border-color: #ffeb3b; }
+}
+
+.btn.queued {
+    border: 3px dashed #ffeb3b;
+    animation: pulse-queued 1s infinite;
+}
+
+/* ── DEBUG MODAL ── */
+.debug-modal {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0, 0, 0, 0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+}
+
+.debug-content {
+    background: #1a1a1a;
+    border: 2px solid #00ff00;
+    border-radius: 8px;
+    padding: 20px;
+    width: 90%;
+    max-width: 800px;
+    max-height: 80vh;
+    overflow-y: auto;
+    position: relative;
+}
+
+.debug-content h2 {
+    color: #00ff00;
+    margin-bottom: 15px;
+    font-family: monospace;
+}
+
+.close-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: #00ff00;
+    color: #000;
+    border: none;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    font-size: 1.2rem;
+    cursor: pointer;
+}

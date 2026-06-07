@@ -1,7 +1,3 @@
-// =============================================================================
-// OpenArranger Drums - main.js
-// =============================================================================
-
 // ── CDN loader ────────────────────────────────────────────────────────────────
 function loadScript(src) {
     return new Promise((resolve, reject) => {
@@ -263,43 +259,39 @@ async function loadKitFile(file) {
 
     const zip      = await JSZip.loadAsync(file);
     const sfzEntry = Object.values(zip.files).find(f => f.name.endsWith('.sfz'));
-    if (!sfzEntry) { setStatus('❌ Kit inválido: nenhum .sfz encontrado'); return; }
+    if (!sfzEntry) { setStatus('Kit inválido: nenhum .sfz encontrado'); return; }
 
-    const mapping = parseSFZ(await sfzEntry.async('string'));
+    const { defaultPath, regions } = parseSFZ(await sfzEntry.async('string'));
     let loaded = 0;
 
-    for (const [note, path] of Object.entries(mapping)) {
-        // Pega só o nome do arquivo (ex: "Hihat 046.wav") e converte pra minúsculo
-        const targetName = path.replace(/\\/g, '/').split('/').pop().toLowerCase();
-        
-        // Vasculha todos os arquivos do ZIP ignorando pastas e letras maiúsculas
+    for (const [note, region] of Object.entries(regions)) {
+        // Monta o caminho completo: defaultPath + sample (ex: "Samples/Kick 036.wav")
+        const fullPath   = (defaultPath + region.sample).replace(/\\/g, '/');
+        const targetName = fullPath.split('/').pop().toLowerCase();
+
+        // Busca no ZIP ignorando maiúsculas/minúsculas
         const entryKey = Object.keys(zip.files).find(k => k.toLowerCase().endsWith(targetName));
-        
-        const entry = zip.files[entryKey];
-        
-        if (!entry) { 
-            console.warn('⚠️ Sample não encontrado no ZIP:', path); 
-            continue; 
-        }
-        
+        const entry    = zip.files[entryKey];
+
+        if (!entry) { console.warn('Sample não encontrado:', fullPath); continue; }
+
         try {
-            kitBuffers[note] = await audioCtx.decodeAudioData(await entry.async('arraybuffer'));
+            const buffer = await audioCtx.decodeAudioData(await entry.async('arraybuffer'));
+            kitBuffers[note] = { buffer, group: region.group, off_by: region.off_by };
             loaded++;
-        } catch (e) { 
-            console.warn('❌ Erro ao decodificar o áudio:', path, e); 
-        }
+        } catch (e) { console.warn('Decode error:', fullPath, e); }
     }
 
     kitLoaded = true;
     kitName   = file.name.replace(/\.kit$/i, '');
-    setStatus(`✅ Kit "${kitName}" — ${loaded} samples`);
+    setStatus(`Kit "${kitName}" — ${loaded} samples`);
     updateHeaderLabels();
 }
 
 function parseSFZ(text) {
-    const mapping = {};
+    const regions = {};
+    let defaultPath = '';
 
-    // Remove comentários de linha
     text = text.replace(/\/\/.*/g, '');
 
     // Divide em headers e blocos: <group>, <region>, <global>, etc.
@@ -323,19 +315,15 @@ function parseSFZ(text) {
             opcodes[m[1].toLowerCase()] = m[2].trim();
         }
 
-        if (blockType === 'global') {
-            globalOpcodes = opcodes;
+        if (blockType === 'control') {
+            if (opcodes['default_path']) defaultPath = opcodes['default_path'].replace(/\\/g, '/');
             continue;
         }
-
-        if (blockType === 'group') {
-            // Herda global, sobrescreve com group
-            groupOpcodes = { ...globalOpcodes, ...opcodes };
-            continue;
-        }
+        if (blockType === 'global') { globalOpcodes = opcodes; continue; }
+        if (blockType === 'group')  { groupOpcodes = { ...globalOpcodes, ...opcodes }; continue; }
 
         if (blockType === 'region') {
-            // Herda global → group → region (precedência crescente)
+            // Herda global → group → region
             const merged = { ...globalOpcodes, ...groupOpcodes, ...opcodes };
 
             const sample = merged['sample']?.replace(/["\']/g, '').trim();
@@ -350,11 +338,17 @@ function parseSFZ(text) {
             if (note === null && merged['pitch_keycenter'] !== undefined) note = parseMidiNote(merged['pitch_keycenter']);
             if (note === null && merged['lokey']           !== undefined) note = parseMidiNote(merged['lokey']);
 
-            if (note !== null) mapping[note] = sample;
+            if (note !== null) {
+                regions[note] = {
+                    sample,
+                    group:  merged['group']  !== undefined ? parseInt(merged['group'])  : null,
+                    off_by: merged['off_by'] !== undefined ? parseInt(merged['off_by']) : null,
+                };
+            }
         }
     }
 
-    return mapping;
+    return { defaultPath, regions };
 }
 
 // Converte nota MIDI: aceita número "36" ou nome "C2", "F#3"
@@ -379,7 +373,7 @@ async function loadStyleFile(file) {
 
     const zip      = await JSZip.loadAsync(file);
     const jsonEntry = zip.files['style.json'];
-    if (!jsonEntry) { setStatus('❌ style.json não encontrado'); return; }
+    if (!jsonEntry) { setStatus('style.json não encontrado'); return; }
 
     styleData = JSON.parse(await jsonEntry.async('string'));
 
@@ -401,7 +395,7 @@ async function loadStyleFile(file) {
     }
 
     const midEntry = zip.files['style.mid'];
-    if (!midEntry) { setStatus('❌ style.mid não encontrado'); return; }
+    if (!midEntry) { setStatus('style.mid não encontrado'); return; }
 
     const midi      = parseMidi(await midEntry.async('arraybuffer'));
     stylePPQ        = midi.ppq;
@@ -415,22 +409,39 @@ async function loadStyleFile(file) {
     styleLoaded = true;
     // Usa o nome do JSON ou faz o fallback (Item 1)
     styleName   = styleData.name || file.name.replace(/\.style$/i, '');
-    setStatus(`✅ Estilo "${styleName}" — ${styleMidiEvents.length} eventos | PPQ ${stylePPQ} | ${beatsPerBar}/4`);
+    setStatus(`Estilo "${styleName}" — ${styleMidiEvents.length} eventos | PPQ ${stylePPQ} | ${beatsPerBar}/4`);
     updateHeaderLabels();
 
     // showDebugInfo(); // Removido para não abrir o popup automaticamente (Item 2)
 }
 
 // ── Sample player ─────────────────────────────────────────────────────────────
+// Nós de gain ativos por grupo (para choker: off_by para o grupo anterior)
+const activeGroupNodes = {}; // groupId → GainNode ainda tocando
+
 function triggerSample(note, velocity, time) {
     if (!kitLoaded || !kitBuffers[note]) return;
+    const kit = kitBuffers[note];
+
+    // Choker: se este sample deve silenciar outro grupo (off_by), faz fade-out rápido
+    if (kit.off_by !== null && activeGroupNodes[kit.off_by]) {
+        const oldGain = activeGroupNodes[kit.off_by];
+        oldGain.gain.setValueAtTime(oldGain.gain.value, time);
+        oldGain.gain.linearRampToValueAtTime(0, time + 0.005); // 5ms fade
+    }
+
     const src  = audioCtx.createBufferSource();
     const gain = audioCtx.createGain();
-    src.buffer = kitBuffers[note];
+    src.buffer = kit.buffer;
     gain.gain.setValueAtTime(velocity / 127, time);
     src.connect(gain);
     gain.connect(audioCtx.destination);
     src.start(time);
+
+    // Registra o gain deste grupo para poder ser cortado depois
+    if (kit.group !== null) {
+        activeGroupNodes[kit.group] = gain;
+    }
 }
 
 // ── Play / Stop ───────────────────────────────────────────────────────────────
@@ -489,7 +500,7 @@ function showDebugInfo() {
         const endTick    = barToTick(def.endBar);
         const bars       = def.endBar - def.startBar;
         const evCount    = styleMidiEvents.filter(e => e.tick >= startTick && e.tick < endTick).length;
-        const flag       = evCount === 0 ? ' ⚠️ vazia' : '';
+        const flag       = evCount === 0 ? ' vazia' : '';
         info += `${name.padEnd(12)} comp. ${def.startBar}–${def.endBar}  (${bars} comp.)  ${evCount} eventos${flag}\n`;
     }
 
@@ -566,7 +577,6 @@ document.getElementById('btn-load-kit').addEventListener('click', () =>
 document.getElementById('input-kit').click());
 document.getElementById('btn-load-style').addEventListener('click', () =>
 document.getElementById('input-style').click());
-document.getElementById('btn-debug').addEventListener('click', showDebugInfo);
 document.getElementById('close-debug').addEventListener('click', () =>
 document.getElementById('debug-modal').style.display = 'none');
 

@@ -27,15 +27,15 @@
 
     <header class="control-bar">
         <div class="file-btns">
-            <button id="btn-load-style">Style</button>
             <button id="btn-load-kit">Kit</button>
+            <button id="btn-load-style">Style</button>
             <button id="btn-debug">Info</button>
         </div>
         <select id="quantization" title="Quantização">
-            <option value="measure">Compasso</option>
-            <option value="half">Metade</option>
-            <option value="beat">Batida</option>
-            <option value="immediate">Imediato</option>
+            <option value="measure">Measure</option>
+            <option value="half">Half measure</option>
+            <option value="beat">Beat</option>
+            <option value="immediate">Imediate</option>
         </select>
         <div class="bpm-controls">
             <button id="bpm-minus">-</button>
@@ -48,9 +48,9 @@
     <input type="file" id="input-style" accept=".style" style="display:none">
 
     <div class="info-bar">
-        <span id="kit-label">Sem kit</span>
+        <span id="kit-label">kit</span>
         <span id="beat-indicator" class="indicator">Tempo: --</span>
-        <span id="style-label">Sem estilo</span>
+        <span id="style-label">Style</span>
     </div>
 
     <div id="status-bar" class="status-bar">Inicializando…</div>
@@ -58,8 +58,8 @@
     <div id="debug-modal" class="debug-modal" style="display:none;">
         <div class="debug-content">
             <button id="close-debug" class="close-btn">✕</button>
-            <h2>Diagnóstico MIDI</h2>
-            <div id="debug-info" style="font-family: monospace; font-size: 0.8rem; color: #0f0; background: #000; padding: 10px; border-radius: 4px; max-height: 60vh; overflow-y: auto; white-space: pre-wrap; word-break: break-word;"></div>
+            <h2>STYLE</h2>
+            <div id="debug-info"></div>
         </div>
     </div>
 
@@ -87,7 +87,7 @@
         <div class="empty-cell"></div>
         <button class="btn break-btn"  data-section="Break">Break</button>
         <div class="empty-cell"></div>
-        <button id="btn-play" class="play-btn">PLAY</button>
+        <button id="btn-play" class="play-btn">Play</button>
     </main>
 
     <script src="main.js"></script>

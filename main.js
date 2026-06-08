@@ -399,7 +399,7 @@ async function loadStyleFile(file) {
 
     const zip      = await JSZip.loadAsync(file);
     const jsonEntry = zip.files['style.json'];
-    if (!jsonEntry) { setStatus('❌ style.json não encontrado'); return; }
+    if (!jsonEntry) { setStatus('style.json não encontrado'); return; }
 
     styleData = JSON.parse(await jsonEntry.async('string'));
 
@@ -421,7 +421,7 @@ async function loadStyleFile(file) {
     }
 
     const midEntry = zip.files['style.mid'];
-    if (!midEntry) { setStatus('❌ style.mid não encontrado'); return; }
+    if (!midEntry) { setStatus('style.mid não encontrado'); return; }
 
     const midi      = parseMidi(await midEntry.async('arraybuffer'));
     stylePPQ        = midi.ppq;
@@ -435,7 +435,7 @@ async function loadStyleFile(file) {
     styleLoaded = true;
     // Usa o nome do JSON ou faz o fallback (Item 1)
     styleName   = styleData.name || file.name.replace(/\.style$/i, '');
-    setStatus(`✅ Estilo "${styleName}" — ${styleMidiEvents.length} eventos | PPQ ${stylePPQ} | ${beatsPerBar}/4`);
+    setStatus(`Style "${styleName}" — ${styleMidiEvents.length} eventos | PPQ ${stylePPQ} | ${beatsPerBar}/4`);
     updateHeaderLabels();
 
     // showDebugInfo(); // Removido para não abrir o popup automaticamente (Item 2)
@@ -484,7 +484,7 @@ function scheduleStop(atTime) {
         clearTimeout(timerId);
         currentSection = 'Main A';
         nextSection    = 'Main A';
-        document.getElementById('btn-play').innerText = 'PLAY';
+        document.getElementById('btn-play').innerText = 'Play';
         document.getElementById('btn-play').classList.remove('playing');
         document.getElementById('beat-indicator').innerText = 'Tempo: --';
         updateUI();
@@ -499,27 +499,18 @@ function showDebugInfo() {
     ? Math.ceil(Math.max(...styleMidiEvents.map(e => e.tick)) / barLengthTicks)
     : '?';
 
-    let info = `ESTILO: ${styleName}\n`;
-    info += `PPQ: ${stylePPQ}  |  Compasso: ${beatsPerBar}/4  |  Ticks/compasso: ${barLengthTicks}\n`;
-    info += `Total de eventos: ${styleMidiEvents.length}  |  Compassos no arquivo: ${totalBars}\n\n`;
-    info += `${'─'.repeat(45)}\nSEÇÕES\n${'─'.repeat(45)}\n`;
+    let info = `Nome: ${styleName}\n`;
+    info += `PPQ: ${stylePPQ}\nFórmula de compasso: ${beatsPerBar}/4\nTicks por compasso: ${barLengthTicks}\n`;
+    info += `Total de eventos: ${styleMidiEvents.length}\nCompassos no arquivo: ${totalBars}\n\n`;
+    info += `${'-'.repeat(40)}\nSEÇÕES\n${'-'.repeat(40)}\n\n`;
 
     for (const [name, def] of Object.entries(styleData.sections || {})) {
         const startTick  = barToTick(def.startBar);
         const endTick    = barToTick(def.endBar);
         const bars       = def.endBar - def.startBar;
         const evCount    = styleMidiEvents.filter(e => e.tick >= startTick && e.tick < endTick).length;
-        const flag       = evCount === 0 ? ' ⚠️ vazia' : '';
-        info += `${name.padEnd(12)} comp. ${def.startBar}–${def.endBar}  (${bars} comp.)  ${evCount} eventos${flag}\n`;
-    }
-
-    info += `\n${'─'.repeat(45)}\nPRIMEIROS 20 EVENTOS\n${'─'.repeat(45)}\n`;
-    const noteNames = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
-    for (let i = 0; i < Math.min(20, styleMidiEvents.length); i++) {
-        const ev  = styleMidiEvents[i];
-        const bar = Math.floor(ev.tick / barLengthTicks) + 1;
-        const nm  = noteNames[ev.note % 12] + Math.floor(ev.note / 12);
-        info += `[${String(i).padStart(2)}] tick ${String(ev.tick).padStart(6)}  comp.${String(bar).padStart(3)}  nota ${String(ev.note).padStart(3)} (${nm.padEnd(3)})  vel ${String(ev.velocity).padStart(3)}\n`;
+        const flag       = evCount === 0 ? ' vazia' : '';
+        info += `${name.padEnd(10)} ${String(def.startBar).padStart(2, '0')}–${String(def.endBar).padStart(2, '0')} Length: ${bars} Notes: ${evCount}${flag}\n`;
     }
 
     document.getElementById('debug-info').innerText = info;

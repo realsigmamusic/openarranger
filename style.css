@@ -125,7 +125,7 @@ body {
     border: none;
     border-radius: 8px;
     font-weight: bold;
-    font-size: 0.9rem;
+    font-size: 1rem;
     box-shadow: 0 4px #000;
     transition: transform 0.1s, box-shadow 0.1s;
     cursor: pointer;
@@ -157,7 +157,7 @@ body {
 .debug-modal {
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(0, 0, 0, 0.9);
+    background: rgba(0, 0, 0, 0.5);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -166,7 +166,6 @@ body {
 
 .debug-content {
     background: #1a1a1a;
-    border: 2px solid #00ff00;
     border-radius: 8px;
     padding: 20px;
     width: 90%;
@@ -174,19 +173,19 @@ body {
     max-height: 80vh;
     overflow-y: auto;
     position: relative;
+    font-family: monospace;
 }
 
 .debug-content h2 {
-    color: #00ff00;
-    margin-bottom: 15px;
-    font-family: monospace;
+    color: #aaa;
+    padding-bottom: 1rem;
 }
 
 .close-btn {
     position: absolute;
     top: 10px;
     right: 10px;
-    background: #00ff00;
+    background: #aaa;
     color: #000;
     border: none;
     border-radius: 50%;
@@ -195,6 +194,11 @@ body {
     font-size: 1.2rem;
     cursor: pointer;
 }
+
+#debug-info {
+    white-space: pre-wrap;
+}
+
 /* ── QUANTIZAÇÃO ── */
 #quantization {
     background: #2b2b2b;

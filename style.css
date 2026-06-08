@@ -52,13 +52,19 @@ body {
 
 #bpm-display {
     font-weight: bold;
-    min-width: 70px;
+    min-width: 30px;
     text-align: center;
 }
 
 .play-btn {
     background: #2e7d32 !important;
-    min-width: 80px;
+    border: none;
+    border-radius: 8px;
+    font-weight: bold;
+    font-size: 0.9rem;
+    box-shadow: 0 4px #000;
+    transition: transform 0.1s, box-shadow 0.1s;
+    cursor: pointer;
 }
 
 .play-btn.playing {

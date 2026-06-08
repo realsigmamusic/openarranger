@@ -143,7 +143,7 @@ body {
 }
 
 .btn.queued {
-    border: 3px dashed #ffeb3b;
+    border: 3px solid #ffeb3b;
     animation: pulse-queued 1s infinite;
 }
 

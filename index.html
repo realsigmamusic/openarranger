@@ -12,12 +12,19 @@
         <div class="file-btns">
             <button id="btn-load-style">Load Style</button>
             <button id="btn-load-kit">Load Kit</button>
+            <button id="btn-debug">Info</button>
         </div>
         <div class="bpm-controls">
             <button id="bpm-minus">-</button>
             <input type="number" id="bpm-display" value="120" min="40" max="250" style="width: 60px; text-align: center; background: transparent; color: white; border: none; font-weight: bold; outline: none; -moz-appearance: textfield;">
             <button id="bpm-plus">+</button>
         </div>
+        <select id="quantization" title="Quantização">
+            <option value="measure">Compasso</option>
+            <option value="half">Metade</option>
+            <option value="beat">Batida</option>
+            <option value="immediate">Imediato</option>
+        </select>
         <button id="btn-play" class="play-btn">PLAY</button>
     </header>
 

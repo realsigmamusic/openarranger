@@ -1,3 +1,7 @@
+// =============================================================================
+// OpenArranger Drums - main.js
+// =============================================================================
+
 // ── CDN loader ────────────────────────────────────────────────────────────────
 function loadScript(src) {
     return new Promise((resolve, reject) => {
@@ -17,6 +21,7 @@ let timerId    = null;
 // Cérebro Musical
 let currentSection = 'Main A';
 let nextSection    = 'Main A';   // o que vai tocar no próximo compasso
+let quantization   = 'measure';  // 'measure' | 'beat' | 'immediate'
 let returnSection  = 'Main A';   // memória do Break
 
 const scheduleAheadTime = 0.1;   // segundos à frente para agendar
@@ -172,15 +177,19 @@ function autoRoute(section) {
 // barIndex dentro da seção atual (para fazer loop correto de seções multi-compasso)
 let currentBarIndexInSection = 0;
 
-function startBar(sectionName, barIndexInSection, startTime) {
+function startBar(sectionName, barIndexInSection, startTime, entryTick = 0) {
     currentSection           = sectionName;
     currentBarIndexInSection = barIndexInSection;
-    barStartTime             = startTime;
-    barTickOffset            = 0;
+    // Em immediate, recua o barStartTime para que barTickOffset comece em entryTick
+    barStartTime             = startTime - ticksToSeconds(entryTick);
+    barTickOffset            = entryTick;
     eventIndex               = 0;
     barEvents                = styleLoaded
-    ? getBarEvents(sectionName, barIndexInSection)
-    : [];
+        ? getBarEvents(sectionName, barIndexInSection)
+        : [];
+    // Pula eventos anteriores ao ponto de entrada
+    while (eventIndex < barEvents.length &&
+           barEvents[eventIndex].relativeTick < entryTick) eventIndex++;
 
     if (sectionName.startsWith('Main ')) returnSection = sectionName;
     updateUI();
@@ -211,29 +220,48 @@ function scheduler() {
 
             barTickOffset++;
 
-            // ── Fim do compasso ───────────────────────────────────────────────────
-            if (barTickOffset >= barLengthTicks) {
-                const nextBarStart = barStartTime + ticksToSeconds(barLengthTicks);
+            // ── Verifica transição conforme quantização ───────────────────────
+            const userQueued   = (nextSection !== currentSection) ? nextSection : null;
+            const isMeasureEnd = barTickOffset >= barLengthTicks;
+            const halfTicks    = Math.floor(barLengthTicks / 2);
+            const isHalfEnd    = !isMeasureEnd && (barTickOffset % halfTicks === 0) && barTickOffset > 0;
+            const isBeatEnd    = !isMeasureEnd && !isHalfEnd && (barTickOffset % stylePPQ === 0) && barTickOffset > 0;
+            const isImmediate  = !isMeasureEnd && !isHalfEnd && !isBeatEnd;
 
-                // Decide o que toca no próximo compasso
-                // Prioridade 1: usuário agendou algo diferente
-                const userQueued = (nextSection !== currentSection) ? nextSection : null;
+            // Quantização só se aplica a Fills — todo o resto usa 'measure'
+            const isFill = userQueued && userQueued.startsWith('Fill ');
+            const activeQuant = isFill ? quantization : 'measure';
+
+            // Decide se é hora de trocar agora
+            const shouldTransition = isMeasureEnd || (
+                userQueued && (
+                    (activeQuant === 'half'      && isHalfEnd)  ||
+                    (activeQuant === 'beat'      && isBeatEnd)  ||
+                    (activeQuant === 'immediate' && isImmediate)
+                )
+            );
+
+            if (shouldTransition) {
+                // O tick absoluto dentro do compasso no momento da transição
+                // (0 se fim do compasso, barTickOffset se corte antecipado)
+                const cutTick      = isMeasureEnd ? barLengthTicks : barTickOffset;
+                const nextBarStart = barStartTime + ticksToSeconds(cutTick);
 
                 if (userQueued) {
-                    // Troca imediata para o que o usuário pediu
                     if (userQueued === 'STOP') { scheduleStop(nextBarStart); return; }
-                    nextSection = userQueued; // mantém igual (será limpo em startBar via updateUI)
-                    startBar(userQueued, 0, nextBarStart);
+                    // entryTick: posição absoluta no compasso onde a nova seção começa.
+                    // Isso garante alinhamento musical perfeito independente do modo —
+                    // a "agulha" continua no mesmo ponto do grid, só muda o conteúdo.
+                    const entryTick = (isMeasureEnd || activeQuant === 'measure') ? 0 : cutTick;
+                    startBar(userQueued, 0, nextBarStart, entryTick);
                 } else {
-                    // Prioridade 2: automação (Fill→Main, Break→return, Ending→STOP, loop)
-                    const totalBars = sectionBarCount(currentSection);
-                    const nextBarIndex = currentBarIndexInSection + 1;
+                    // Automação: só roda no fim do compasso
+                    const totalBars   = sectionBarCount(currentSection);
+                    const nextBarIdx  = currentBarIndexInSection + 1;
 
-                    if (nextBarIndex < totalBars) {
-                        // Continua na mesma seção, próximo compasso
-                        startBar(currentSection, nextBarIndex, nextBarStart);
+                    if (nextBarIdx < totalBars) {
+                        startBar(currentSection, nextBarIdx, nextBarStart);
                     } else {
-                        // Seção terminou — aplica roteamento automático
                         const auto = autoRoute(currentSection);
                         if (auto === 'STOP') { scheduleStop(nextBarStart); return; }
                         nextSection = auto;
@@ -259,39 +287,43 @@ async function loadKitFile(file) {
 
     const zip      = await JSZip.loadAsync(file);
     const sfzEntry = Object.values(zip.files).find(f => f.name.endsWith('.sfz'));
-    if (!sfzEntry) { setStatus('Kit inválido: nenhum .sfz encontrado'); return; }
+    if (!sfzEntry) { setStatus('❌ Kit inválido: nenhum .sfz encontrado'); return; }
 
-    const { defaultPath, regions } = parseSFZ(await sfzEntry.async('string'));
+    const mapping = parseSFZ(await sfzEntry.async('string'));
     let loaded = 0;
 
-    for (const [note, region] of Object.entries(regions)) {
-        // Monta o caminho completo: defaultPath + sample (ex: "Samples/Kick 036.wav")
-        const fullPath   = (defaultPath + region.sample).replace(/\\/g, '/');
-        const targetName = fullPath.split('/').pop().toLowerCase();
-
-        // Busca no ZIP ignorando maiúsculas/minúsculas
+    for (const [note, path] of Object.entries(mapping)) {
+        // Pega só o nome do arquivo (ex: "Hihat 046.wav") e converte pra minúsculo
+        const targetName = path.replace(/\\/g, '/').split('/').pop().toLowerCase();
+        
+        // Vasculha todos os arquivos do ZIP ignorando pastas e letras maiúsculas
         const entryKey = Object.keys(zip.files).find(k => k.toLowerCase().endsWith(targetName));
-        const entry    = zip.files[entryKey];
-
-        if (!entry) { console.warn('Sample não encontrado:', fullPath); continue; }
-
+        
+        const entry = zip.files[entryKey];
+        
+        if (!entry) { 
+            console.warn('⚠️ Sample não encontrado no ZIP:', path); 
+            continue; 
+        }
+        
         try {
-            const buffer = await audioCtx.decodeAudioData(await entry.async('arraybuffer'));
-            kitBuffers[note] = { buffer, group: region.group, off_by: region.off_by };
+            kitBuffers[note] = await audioCtx.decodeAudioData(await entry.async('arraybuffer'));
             loaded++;
-        } catch (e) { console.warn('Decode error:', fullPath, e); }
+        } catch (e) { 
+            console.warn('❌ Erro ao decodificar o áudio:', path, e); 
+        }
     }
 
     kitLoaded = true;
     kitName   = file.name.replace(/\.kit$/i, '');
-    setStatus(`Kit "${kitName}" — ${loaded} samples`);
+    setStatus(`✅ Kit "${kitName}" — ${loaded} samples`);
     updateHeaderLabels();
 }
 
 function parseSFZ(text) {
-    const regions = {};
-    let defaultPath = '';
+    const mapping = {};
 
+    // Remove comentários de linha
     text = text.replace(/\/\/.*/g, '');
 
     // Divide em headers e blocos: <group>, <region>, <global>, etc.
@@ -315,15 +347,19 @@ function parseSFZ(text) {
             opcodes[m[1].toLowerCase()] = m[2].trim();
         }
 
-        if (blockType === 'control') {
-            if (opcodes['default_path']) defaultPath = opcodes['default_path'].replace(/\\/g, '/');
+        if (blockType === 'global') {
+            globalOpcodes = opcodes;
             continue;
         }
-        if (blockType === 'global') { globalOpcodes = opcodes; continue; }
-        if (blockType === 'group')  { groupOpcodes = { ...globalOpcodes, ...opcodes }; continue; }
+
+        if (blockType === 'group') {
+            // Herda global, sobrescreve com group
+            groupOpcodes = { ...globalOpcodes, ...opcodes };
+            continue;
+        }
 
         if (blockType === 'region') {
-            // Herda global → group → region
+            // Herda global → group → region (precedência crescente)
             const merged = { ...globalOpcodes, ...groupOpcodes, ...opcodes };
 
             const sample = merged['sample']?.replace(/["\']/g, '').trim();
@@ -338,17 +374,11 @@ function parseSFZ(text) {
             if (note === null && merged['pitch_keycenter'] !== undefined) note = parseMidiNote(merged['pitch_keycenter']);
             if (note === null && merged['lokey']           !== undefined) note = parseMidiNote(merged['lokey']);
 
-            if (note !== null) {
-                regions[note] = {
-                    sample,
-                    group:  merged['group']  !== undefined ? parseInt(merged['group'])  : null,
-                    off_by: merged['off_by'] !== undefined ? parseInt(merged['off_by']) : null,
-                };
-            }
+            if (note !== null) mapping[note] = sample;
         }
     }
 
-    return { defaultPath, regions };
+    return mapping;
 }
 
 // Converte nota MIDI: aceita número "36" ou nome "C2", "F#3"
@@ -373,7 +403,7 @@ async function loadStyleFile(file) {
 
     const zip      = await JSZip.loadAsync(file);
     const jsonEntry = zip.files['style.json'];
-    if (!jsonEntry) { setStatus('style.json não encontrado'); return; }
+    if (!jsonEntry) { setStatus('❌ style.json não encontrado'); return; }
 
     styleData = JSON.parse(await jsonEntry.async('string'));
 
@@ -395,7 +425,7 @@ async function loadStyleFile(file) {
     }
 
     const midEntry = zip.files['style.mid'];
-    if (!midEntry) { setStatus('style.mid não encontrado'); return; }
+    if (!midEntry) { setStatus('❌ style.mid não encontrado'); return; }
 
     const midi      = parseMidi(await midEntry.async('arraybuffer'));
     stylePPQ        = midi.ppq;
@@ -409,39 +439,22 @@ async function loadStyleFile(file) {
     styleLoaded = true;
     // Usa o nome do JSON ou faz o fallback (Item 1)
     styleName   = styleData.name || file.name.replace(/\.style$/i, '');
-    setStatus(`Estilo "${styleName}" — ${styleMidiEvents.length} eventos | PPQ ${stylePPQ} | ${beatsPerBar}/4`);
+    setStatus(`✅ Estilo "${styleName}" — ${styleMidiEvents.length} eventos | PPQ ${stylePPQ} | ${beatsPerBar}/4`);
     updateHeaderLabels();
 
     // showDebugInfo(); // Removido para não abrir o popup automaticamente (Item 2)
 }
 
 // ── Sample player ─────────────────────────────────────────────────────────────
-// Nós de gain ativos por grupo (para choker: off_by para o grupo anterior)
-const activeGroupNodes = {}; // groupId → GainNode ainda tocando
-
 function triggerSample(note, velocity, time) {
     if (!kitLoaded || !kitBuffers[note]) return;
-    const kit = kitBuffers[note];
-
-    // Choker: se este sample deve silenciar outro grupo (off_by), faz fade-out rápido
-    if (kit.off_by !== null && activeGroupNodes[kit.off_by]) {
-        const oldGain = activeGroupNodes[kit.off_by];
-        oldGain.gain.setValueAtTime(oldGain.gain.value, time);
-        oldGain.gain.linearRampToValueAtTime(0, time + 0.005); // 5ms fade
-    }
-
     const src  = audioCtx.createBufferSource();
     const gain = audioCtx.createGain();
-    src.buffer = kit.buffer;
+    src.buffer = kitBuffers[note];
     gain.gain.setValueAtTime(velocity / 127, time);
     src.connect(gain);
     gain.connect(audioCtx.destination);
     src.start(time);
-
-    // Registra o gain deste grupo para poder ser cortado depois
-    if (kit.group !== null) {
-        activeGroupNodes[kit.group] = gain;
-    }
 }
 
 // ── Play / Stop ───────────────────────────────────────────────────────────────
@@ -500,7 +513,7 @@ function showDebugInfo() {
         const endTick    = barToTick(def.endBar);
         const bars       = def.endBar - def.startBar;
         const evCount    = styleMidiEvents.filter(e => e.tick >= startTick && e.tick < endTick).length;
-        const flag       = evCount === 0 ? ' vazia' : '';
+        const flag       = evCount === 0 ? ' ⚠️ vazia' : '';
         info += `${name.padEnd(12)} comp. ${def.startBar}–${def.endBar}  (${bars} comp.)  ${evCount} eventos${flag}\n`;
     }
 
@@ -550,6 +563,9 @@ function updateUI() {
 }
 
 // ── Event listeners ───────────────────────────────────────────────────────────
+document.getElementById('quantization').addEventListener('change', e => {
+    quantization = e.target.value;
+});
 document.getElementById('btn-play').addEventListener('click', togglePlay);
 
 const bpmInput = document.getElementById('bpm-display');
@@ -577,6 +593,7 @@ document.getElementById('btn-load-kit').addEventListener('click', () =>
 document.getElementById('input-kit').click());
 document.getElementById('btn-load-style').addEventListener('click', () =>
 document.getElementById('input-style').click());
+document.getElementById('btn-debug').addEventListener('click', showDebugInfo);
 document.getElementById('close-debug').addEventListener('click', () =>
 document.getElementById('debug-modal').style.display = 'none');
 

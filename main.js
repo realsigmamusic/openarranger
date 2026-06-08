@@ -17,7 +17,7 @@ let timerId    = null;
 // Cérebro Musical
 let currentSection = 'Main A';
 let nextSection    = 'Main A';   // o que vai tocar no próximo compasso
-let quantization   = 'measure';  // 'measure' | 'beat' | 'immediate'
+let quantization   = 'beat';  // 'measure' | 'half' | 'beat' | 'immediate'
 let returnSection  = 'Main A';   // memória do Break
 
 const scheduleAheadTime = 0.1;   // segundos à frente para agendar
@@ -211,7 +211,7 @@ function scheduler() {
             // Beat indicator (1-based)
             const beat = Math.floor(barTickOffset / stylePPQ);
             requestAnimationFrame(() => {
-                document.getElementById('beat-indicator').innerText = `Tempo: ${beat + 1}`;
+                document.getElementById('beat-indicator').innerText = `${beat + 1}`;
             });
 
             barTickOffset++;
@@ -298,7 +298,7 @@ async function loadKitFile(file) {
         const entry = zip.files[entryKey];
         
         if (!entry) { 
-            console.warn('⚠️ Sample não encontrado no ZIP:', path); 
+            console.warn('Sample não encontrado no ZIP:', path); 
             continue; 
         }
         
@@ -306,13 +306,13 @@ async function loadKitFile(file) {
             kitBuffers[note] = await audioCtx.decodeAudioData(await entry.async('arraybuffer'));
             loaded++;
         } catch (e) { 
-            console.warn('❌ Erro ao decodificar o áudio:', path, e); 
+            console.warn('Erro ao decodificar o áudio:', path, e); 
         }
     }
 
     kitLoaded = true;
     kitName   = file.name.replace(/\.kit$/i, '');
-    setStatus(`✅ Kit "${kitName}" — ${loaded} samples`);
+    setStatus(`Kit "${kitName}" — ${loaded} samples`);
     updateHeaderLabels();
 }
 
@@ -608,4 +608,4 @@ document.querySelectorAll('.grid-container .btn').forEach(btn => {
 // Inicialização
 updateUI();
 updateHeaderLabels();
-setStatus('Pronto. Carregue um .kit e um .style para começar.');
+setStatus('Carregue um .kit e um .style para começar.');

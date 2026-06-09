@@ -465,15 +465,15 @@ function togglePlay() {
         barLengthTicks = stylePPQ * beatsPerBar; // garante inicializado
         nextSection    = currentSection;
         startBar(currentSection, 0, audioCtx.currentTime + 0.05);
-        document.getElementById('btn-play').innerText = 'STOP';
+        document.getElementById('btn-play').innerText = 'Stop';
         document.getElementById('btn-play').classList.add('playing');
         scheduler();
     } else {
         isPlaying = false;
         clearTimeout(timerId);
-        document.getElementById('btn-play').innerText = 'PLAY';
+        document.getElementById('btn-play').innerText = 'Start';
         document.getElementById('btn-play').classList.remove('playing');
-        document.getElementById('beat-indicator').innerText = 'Tempo: --';
+        document.getElementById('beat-indicator').innerText = '---';
     }
 }
 
@@ -484,9 +484,9 @@ function scheduleStop(atTime) {
         clearTimeout(timerId);
         currentSection = 'Main A';
         nextSection    = 'Main A';
-        document.getElementById('btn-play').innerText = 'Play';
+        document.getElementById('btn-play').innerText = 'Start';
         document.getElementById('btn-play').classList.remove('playing');
-        document.getElementById('beat-indicator').innerText = 'Tempo: --';
+        document.getElementById('beat-indicator').innerText = '---';
         updateUI();
     }, delay);
 }

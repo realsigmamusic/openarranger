@@ -1,43 +1,59 @@
 const CACHE_NAME = 'v26.06.09';
 const ASSETS = [
-	'./',
-	'./index.html',
-	'./main.js',
-	'./manifest.json',
-	'./maskable_icon_x512.png'
+    './',
+    './index.html',
+    './style.css',
+    './main.js',
+    './manifest.json',
+    './assets/maskable_icon_x512.png',
+	'./assets/vendor/jszip.min.js'
 ];
 
 self.addEventListener('install', (e) => {
-	e.waitUntil(
-		caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
-	);
-	self.skipWaiting();
+    self.skipWaiting();
+    e.waitUntil(
+        caches.open(CACHE_NAME).then((cache) => {
+            console.log('Arquivos em cache com sucesso!');
+            return cache.addAll(ASSETS);
+        })
+    );
 });
 
 self.addEventListener('activate', (e) => {
-	e.waitUntil(
-		caches.keys().then((keyList) => {
-			return Promise.all(
-				keyList.map((key) => {
-					if (key !== CACHE_NAME) return caches.delete(key);
-				})
-			);
-		})
-	);
-	self.clients.claim();
+    e.waitUntil(
+        caches.keys().then((keyList) => {
+            return Promise.all(
+                keyList.map((key) => {
+                    // Deleta caches velhos se o CACHE_NAME mudou
+                    if (key !== CACHE_NAME) return caches.delete(key);
+                })
+            );
+        })
+    );
+    self.clients.claim();
 });
 
 self.addEventListener('fetch', (e) => {
-	e.respondWith(
-		caches.match(e.request).then((cachedResponse) => {
-			const fetchPromise = fetch(e.request).then((networkResponse) => {
-				caches.open(CACHE_NAME).then((cache) => {
-					cache.put(e.request, networkResponse.clone());
-				});
-				return networkResponse;
-			});
+    // Ignora requisições de extensões do navegador ou coisas que não são GET
+    if (e.request.method !== 'GET') return;
 
-			return cachedResponse || fetchPromise;
-		})
-	);
+    // Cache Primeiro, Rede depois.
+    e.respondWith(
+        caches.match(e.request).then((cachedResponse) => {
+            // Se achou no cache, retorna NA HORA.
+            if (cachedResponse) {
+                return cachedResponse; 
+            }
+            
+            // Se não tem no cache, busca na internet (e já salva pro futuro)
+            return fetch(e.request).then((networkResponse) => {
+                return caches.open(CACHE_NAME).then((cache) => {
+                    cache.put(e.request, networkResponse.clone());
+                    return networkResponse;
+                });
+            }).catch((erro) => {
+                console.error('Offline total e arquivo não encontrado no cache:', e.request.url);
+            });
+        })
+    );
 });

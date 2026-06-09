@@ -273,7 +273,7 @@ function scheduler() {
 // ── Carregamento de arquivos ──────────────────────────────────────────────────
 async function ensureJSZip() {
     if (window.JSZip) return;
-    await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js');
+    await loadScript('./assets/vendor/jszip.min.js');
 }
 
 async function loadKitFile(file) {

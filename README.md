@@ -1,6 +1,6 @@
-# OpenArranger Drums
+# OpenArranger
 
-OpenArranger Drums is an open-source, web-based, offline-first accompaniment tool designed for gigging solo musicians. It emulates the behavior of traditional hardware arranger keyboards, allowing real-time control over non-linear drum patterns (Mains, Fills, Intros, Endings, and Breaks) with zero audio latency.
+OpenArranger is an open-source, web-based, offline-first accompaniment tool designed for gigging solo musicians. It emulates the behavior of traditional hardware arranger keyboards, allowing real-time control over non-linear drum patterns (Mains, Fills, Intros, Endings, and Breaks) with zero audio latency.
 
 ## Key Features
 

@@ -75,6 +75,5 @@ The core engine maps performance sections based on full bars, decoupling the mus
 
 This project is open-source and available under the MIT License.
 
-* Drum machine icons created by [Freepik - Flaticon](https://www.flaticon.com/free-icons/drum-machine)
 * Maskable icon utility by [NotWoods - Maskable](https://github.com/NotWoods/maskable)
 * [jszip](https://stuk.github.io/jszip/)

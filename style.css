@@ -15,88 +15,85 @@ body {
     overflow: hidden;
 }
 
-/* ── HEADER ── */
+/* HEADER */
 .control-bar {
     display: flex;
     background: #1e1e1e;
-    padding: 10px;
+    padding: 0.5rem;
     align-items: center;
     justify-content: space-between;
-    gap: 5px;
+    gap: 0.25rem;
     flex-shrink: 0;
 }
 
 .file-btns {
     display: flex;
-    gap: 5px;
+    gap: 0.5rem;
 }
 
-.control-bar button {
-    padding: 12px 8px;
-    background: #333;
-    color: white;
+.control-bar {
+    padding: 0.8rem 1rem;
+}
+
+button {
+    padding: 0.8rem 0.5rem;
+    background: #555;
+    color: #fff;
     border: none;
-    border-radius: 4px;
+    border-radius: 0.25rem;
     font-weight: bold;
     cursor: pointer;
+}
+
+#quantization {
+    background: #2b2b2b;
+    color: #fff;
+    border: 1px solid #555;
+    border-radius: 0.25rem;
+    padding: 0.8rem 0.5rem;
+    font-weight: bold;
+    cursor: pointer;
+    font-size: 0.85rem;
 }
 
 .bpm-controls {
     display: flex;
     align-items: center;
-    gap: 10px;
-    background: #2b2b2b;
-    padding: 5px 10px;
-    border-radius: 4px;
+    gap: 0.5rem;
 }
 
 #bpm-display {
     font-weight: bold;
-    min-width: 30px;
+    min-width: 2rem;
     text-align: center;
 }
 
-.play-btn {
-    background: #2e7d32 !important;
-    border: none;
-    border-radius: 8px;
-    font-weight: bold;
-    font-size: 0.9rem;
-    box-shadow: 0 4px #000;
-    transition: transform 0.1s, box-shadow 0.1s;
-    cursor: pointer;
-}
-
-.play-btn.playing {
-    background: #d32f2f !important;
-}
-
-/* ── INFO BAR (kit / beat / style) ── */
+/* INFO BAR (kit / beat / style) */
 .info-bar {
     display: flex;
     justify-content: space-between;
     align-items: center;
     background: #1a1a1a;
-    padding: 6px 12px;
-    font-size: 0.8rem;
-    color: #aaa;
+    padding: 0.5rem 1rem;
+    font-size: 1rem;
+    font-family: monospace;
+    color: #fff176;
     border-bottom: 1px solid #2a2a2a;
     flex-shrink: 0;
 }
 
 .indicator {
-    font-weight: bold;
-    color: #00e676;
-    font-size: 0.9rem;
+    font-size: 1rem;
 }
 
-/* ── STATUS BAR ── */
+/* STATUS BAR */
 .status-bar {
     background: #111;
     text-align: center;
-    padding: 5px 10px;
+    padding: 1rem;
     font-size: 0.75rem;
-    color: #888;
+    font-family: monospace;
+    color: #999;
     border-bottom: 1px solid #222;
     white-space: nowrap;
     overflow: hidden;
@@ -104,14 +101,14 @@ body {
     flex-shrink: 0;
 }
 
-/* ── GRADE ── */
+/* GRADE */
 .grid-container {
     flex: 1;
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     grid-template-rows: repeat(5, 1fr);
-    gap: 8px;
-    padding: 8px;
+    gap: 0.5rem;
+    padding: 0.5rem;
     min-height: 0;
 }
 
@@ -123,10 +120,9 @@ body {
 
 .btn {
     border: none;
-    border-radius: 8px;
+    border-radius: 0.5rem;
     font-weight: bold;
-    font-size: 1rem;
-    box-shadow: 0 4px #000;
+    font-size: 0.9rem;
     transition: transform 0.1s, box-shadow 0.1s;
     cursor: pointer;
 }
@@ -141,7 +137,7 @@ body {
     box-shadow: 0 0 15px #ffffff;
 }
 
-/* ── FILA DE ESPERA (Piscando Amarelo) ── */
+/* FILA DE ESPERA */
 @keyframes pulse-queued {
     0%   { box-shadow: 0 0 5px #ffeb3b;  border-color: #ffeb3b; }
     50%  { box-shadow: 0 0 15px #ffeb3b; border-color: #fff176; }
@@ -153,11 +149,11 @@ body {
     animation: pulse-queued 1s infinite;
 }
 
-/* ── DEBUG MODAL ── */
+/* DEBUG MODAL */
 .debug-modal {
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
+    background: rgba(0, 0, 0, 0.75);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -183,30 +179,32 @@ body {
 
 .close-btn {
     position: absolute;
-    top: 10px;
-    right: 10px;
+    right: 1rem;
     background: #aaa;
-    color: #000;
+    color: #111;
     border: none;
     border-radius: 50%;
-    width: 30px;
-    height: 30px;
-    font-size: 1.2rem;
+    width: 1.5rem;
+    height: 1.5rem;
+    font-size: 1rem;
     cursor: pointer;
+    padding: 0;
 }
 
 #debug-info {
     white-space: pre-wrap;
 }
 
-/* ── QUANTIZAÇÃO ── */
-#quantization {
-    background: #2b2b2b;
-    color: white;
-    border: 1px solid #555;
-    border-radius: 4px;
-    padding: 10px 6px;
+.play-btn {
+    background: #555 !important;
+    border: none;
+    border-radius: 0.5rem;
     font-weight: bold;
+    font-size: 1rem;
+    transition: transform 0.1s, box-shadow 0.1s;
     cursor: pointer;
-    font-size: 0.85rem;
+}
+
+.play-btn.playing {
+    background: #555 !important;
 }

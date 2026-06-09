@@ -1,0 +1,48 @@
+<control> default_path=Samples/
+
+<global> loop_mode=one_shot
+
+<group> group_label=Kick
+<region> key=35 sample=Kick 036.wav
+<region> key=36 sample=Kick 036.wav
+
+<group> group_label=Snare
+<region> key=37 sample=Snare 037.wav
+<region> key=38 sample=Snare 038.wav
+<region> key=40 sample=Snare 040.wav
+
+<group> group_label=Toms
+<region> key=41 sample=Toms 041.wav
+<region> key=43 sample=Toms 043.wav
+<region> key=45 sample=Toms 045.wav
+<region> key=47 sample=Toms 047.wav
+<region> key=48 sample=Toms 048.wav
+<region> key=50 sample=Toms 050.wav
+
+<group> group_label=Hihat
+<region> key=42 sample=Hihat 042.wav group=1 off_by=1
+<region> key=44 sample=Hihat 044.wav group=1 off_by=1
+<region> key=46 sample=Hihat 046.wav group=1 off_by=1
+
+<group> group_label=Cymbals
+<region> key=49 sample=Cymbal 049.wav
+<region> key=51 sample=Cymbal 051.wav
+<region> key=52 sample=Cymbal 052.wav
+<region> key=53 sample=Cymbal 053.wav
+<region> key=55 sample=Cymbal 055.wav
+<region> key=57 sample=Cymbal 057.wav
+<region> key=59 sample=Cymbal 059.wav
+
+<group> group_label=Percussions
+<region> key=19 sample=FingerSnap 019.wav
+<region> key=39 sample=Sticks 032.wav
+<region> key=39 sample=HandClap 039.wav
+<region> key=54 sample=Tambourine 054.wav
+<region> key=56 sample=Cowbell 056.wav
+<region> key=58 sample=Vibraslap 058.wav
+<region> key=75 sample=Claves 075.wav
+<region> key=60 sample=Bongo 060.wav
+<region> key=61 sample=Bongo 061.wav
+<region> key=62 sample=Conga 062.wav
+<region> key=63 sample=Conga 063.wav
+<region> key=64 sample=Conga 064.wav

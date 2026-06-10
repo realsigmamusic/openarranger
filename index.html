@@ -1,95 +1,95 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>OpenArranger</title>
-    <link rel="stylesheet" href="style.css">
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+	<title>OpenArranger</title>
+	<link rel="stylesheet" href="style.css">
 
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js')
-                    .then(() => console.log('App pronto para uso Offline!'))
-                    .catch((err) => console.log('Erro no SW:', err));
-            });
-        }
-    </script>
-    <link rel="manifest" href="./manifest.json">
+	<script>
+		if ('serviceWorker' in navigator) {
+			window.addEventListener('load', () => {
+				navigator.serviceWorker.register('./sw.js')
+					.then(() => console.log('App pronto para uso Offline!'))
+					.catch((err) => console.log('Erro no SW:', err));
+			});
+		}
+	</script>
+	<link rel="manifest" href="./manifest.json">
 
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Contrato">
-    <meta name="theme-color" content="#1e1e1e">
-    <link rel="apple-touch-icon" href="./assets/maskable_icon_x512.png">
+	<meta name="apple-mobile-web-app-capable" content="yes">
+	<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+	<meta name="apple-mobile-web-app-title" content="Contrato">
+	<meta name="theme-color" content="#1e1e1e">
+	<link rel="apple-touch-icon" href="./assets/maskable_icon_x512.png">
 </head>
 <body>
 
-    <header class="control-bar">
-        <div class="file-btns">
-            <button id="btn-load-kit">Kit</button>
-            <button id="btn-load-style">Style</button>
-            <button id="btn-debug">Info</button>
-        </div>
-        <select id="quantization" title="Quantização">
-            <option value="measure">Measure</option>
-            <option value="half" selected>Half measure</option>
-            <option value="beat">Beat</option>
-            <option value="immediate">Imediate</option>
-        </select>
-        <div class="bpm-controls">
-            <button id="bpm-minus">-</button>
-            <input type="number" id="bpm-display" value="120" min="40" max="250" style="width: 30px; text-align: center; background: transparent; color: white; border: none; font-weight: bold; outline: none; -moz-appearance: textfield;">
-            <button id="bpm-plus">+</button>
-        </div> 
-    </header>
+	<header class="control-bar">
+		<div class="file-btns">
+			<button id="btn-load-kit">Kit</button>
+			<button id="btn-load-style">Style</button>
+			<button id="btn-debug">Info</button>
+		</div>
+		<select id="quantization" title="Quantização">
+			<option value="measure">Measure</option>
+			<option value="half" selected>Half measure</option>
+			<option value="beat">Beat</option>
+			<option value="immediate">Imediate</option>
+		</select>
+		<div class="bpm-controls">
+			<button id="bpm-minus">-</button>
+			<input type="number" id="bpm-display" value="120" min="40" max="250" style="width: 30px; text-align: center; background: transparent; color: white; border: none; font-weight: bold; outline: none; -moz-appearance: textfield;">
+			<button id="bpm-plus">+</button>
+		</div> 
+	</header>
 
-    <input type="file" id="input-kit"   accept=".kit"   style="display:none">
-    <input type="file" id="input-style" accept=".style" style="display:none">
+	<input type="file" id="input-kit"   accept=".kit"   style="display:none">
+	<input type="file" id="input-style" accept=".style" style="display:none">
 
-    <div class="info-bar">
-        <span id="kit-label">kit</span>
-        <span id="beat-indicator" class="indicator">---</span>
-        <span id="style-label">Style</span>
-    </div>
+	<div class="info-bar">
+		<span id="kit-label">kit</span>
+		<span id="beat-indicator" class="indicator">---</span>
+		<span id="style-label">Style</span>
+	</div>
 
-    <div id="status-bar" class="status-bar">Inicializando…</div>
+	<div id="status-bar" class="status-bar">Inicializando…</div>
 
-    <div id="debug-modal" class="debug-modal" style="display:none;">
-        <div class="debug-content">
-            <button id="close-debug" class="close-btn">✕</button>
-            <h2>STYLE</h2>
-            <div id="debug-info"></div>
-        </div>
-    </div>
+	<div id="debug-modal" class="debug-modal" style="display:none;">
+		<div class="debug-content">
+			<button id="close-debug" class="close-btn">✕</button>
+			<h2>STYLE</h2>
+			<div id="debug-info"></div>
+		</div>
+	</div>
 
-    <main class="grid-container">
-        <button class="btn intro-btn"  data-section="Intro A">Intro A</button>
-        <button class="btn fill-btn"   data-section="Fill In A">Fill In A</button>
-        <button class="btn main-btn active" data-section="Main A">Main A</button>
-        <button class="btn ending-btn" data-section="Ending A">Ending A</button>
+	<main class="grid-container">
+		<button class="btn intro-btn"  data-section="Intro A">Intro A</button>
+		<button class="btn fill-btn"   data-section="Fill In A">Fill In A</button>
+		<button class="btn main-btn active" data-section="Main A">Main A</button>
+		<button class="btn ending-btn" data-section="Ending A">Ending A</button>
 
-        <button class="btn intro-btn"  data-section="Intro B">Intro B</button>
-        <button class="btn fill-btn"   data-section="Fill In B">Fill In B</button>
-        <button class="btn main-btn"   data-section="Main B">Main B</button>
-        <button class="btn ending-btn" data-section="Ending B">Ending B</button>
+		<button class="btn intro-btn"  data-section="Intro B">Intro B</button>
+		<button class="btn fill-btn"   data-section="Fill In B">Fill In B</button>
+		<button class="btn main-btn"   data-section="Main B">Main B</button>
+		<button class="btn ending-btn" data-section="Ending B">Ending B</button>
 
-        <button class="btn intro-btn"  data-section="Intro C">Intro C</button>
-        <button class="btn fill-btn"   data-section="Fill In C">Fill In C</button>
-        <button class="btn main-btn"   data-section="Main C">Main C</button>
-        <button class="btn ending-btn" data-section="Ending C">Ending C</button>
+		<button class="btn intro-btn"  data-section="Intro C">Intro C</button>
+		<button class="btn fill-btn"   data-section="Fill In C">Fill In C</button>
+		<button class="btn main-btn"   data-section="Main C">Main C</button>
+		<button class="btn ending-btn" data-section="Ending C">Ending C</button>
 
-        <div class="empty-cell"></div>
-        <button class="btn fill-btn"   data-section="Fill In D">Fill In D</button>
-        <button class="btn main-btn"   data-section="Main D">Main D</button>
-        <div class="empty-cell"></div>
+		<div class="empty-cell"></div>
+		<button class="btn fill-btn"   data-section="Fill In D">Fill In D</button>
+		<button class="btn main-btn"   data-section="Main D">Main D</button>
+		<div class="empty-cell"></div>
 
-        <div class="empty-cell"></div>
-        <button class="btn break-btn"  data-section="Break">Break</button>
-        <div class="empty-cell"></div>
-        <button id="btn-play" class="play-btn">Start</button>
-    </main>
+		<div class="empty-cell"></div>
+		<button class="btn break-btn"  data-section="Break">Break</button>
+		<div class="empty-cell"></div>
+		<button id="btn-play" class="play-btn">Start</button>
+	</main>
 
-    <script src="main.js"></script>
+	<script src="main.js"></script>
 </body>
 </html>

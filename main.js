@@ -17,7 +17,7 @@ let timerId    = null;
 // Cérebro Musical
 let currentSection = 'Main A';
 let nextSection    = 'Main A';   // o que vai tocar no próximo compasso
-let quantization   = 'immediate';  // 'measure' | 'half' | 'beat' | 'immediate'
+let quantization   = 'half';     // 'measure' | 'half' | 'beat' | 'immediate'
 let returnSection  = 'Main A';   // memória do Break
 
 const scheduleAheadTime = 0.1;   // segundos à frente para agendar

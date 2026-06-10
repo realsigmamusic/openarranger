@@ -31,9 +31,10 @@ let   kitName      = 'Sem kit';
 let styleData      = null;   // style.json parseado
 let styleMidiEvents = null;  // [{ tick, note, velocity }]
 let stylePPQ       = 480;    // lido do cabeçalho MIDI
-let beatsPerBar    = 4;      // lido do timeSignature do JSON
+let beatsPerBar    = 4;      // lido do timeSignature[0] (numerador)
+let beatType       = 4;      // lido do timeSignature[1] (denominador)
 let styleLoaded    = false;
-let styleName      = 'Sem estilo';
+let styleName      = 'Sem style';
 let drumChannels   = [8, 9]; // Padrão: canais 9 e 10 (0-based: 8 e 9)
 
 // ── Scheduler state ───────────────────────────────────────────────────────────
@@ -120,8 +121,11 @@ function extractDrumEvents(midi) {
 
 
 // ── Conversões ─────────────────────────────────────────────────────────────────
-function barToTick(bar)       { return (bar - 1) * stylePPQ * beatsPerBar; }
-function ticksToSeconds(t)    { return (t / stylePPQ) * (60 / bpm); }
+function barToTick(bar) {
+    const ticksPerBeat = stylePPQ * (4 / beatType);
+    return (bar - 1) * ticksPerBeat * beatsPerBar;
+}
+function ticksToSeconds(t) { return (t / stylePPQ) * (60 / bpm); }
 
 // ── Eventos de uma seção ───────────────────────────────────────────────────────
 function getSectionRange(sectionName) {
@@ -209,7 +213,7 @@ function scheduler() {
             }
 
             // Beat indicator (1-based)
-            const beat = Math.floor(barTickOffset / stylePPQ);
+            const beat = Math.floor(barTickOffset / (stylePPQ * (4 / beatType)));
             requestAnimationFrame(() => {
                 document.getElementById('beat-indicator').innerText = `${beat + 1}`;
             });
@@ -283,7 +287,7 @@ async function loadKitFile(file) {
 
     const zip      = await JSZip.loadAsync(file);
     const sfzEntry = Object.values(zip.files).find(f => f.name.endsWith('.sfz'));
-    if (!sfzEntry) { setStatus('❌ Kit inválido: nenhum .sfz encontrado'); return; }
+    if (!sfzEntry) { setStatus('Kit inválido: nenhum .sfz encontrado'); return; }
 
     const mapping = parseSFZ(await sfzEntry.async('string'));
     let loaded = 0;
@@ -312,7 +316,7 @@ async function loadKitFile(file) {
 
     kitLoaded = true;
     kitName   = file.name.replace(/\.kit$/i, '');
-    setStatus(`Kit "${kitName}" — ${loaded} samples`);
+    setStatus(`${kitName} - ${loaded} samples`);
     updateHeaderLabels();
 }
 
@@ -426,7 +430,8 @@ async function loadStyleFile(file) {
     const midi      = parseMidi(await midEntry.async('arraybuffer'));
     stylePPQ        = midi.ppq;
     beatsPerBar     = styleData.timeSignature?.[0] ?? 4;
-    barLengthTicks  = stylePPQ * beatsPerBar;
+    beatType        = styleData.timeSignature?.[1] ?? 4;
+    barLengthTicks  = stylePPQ * (4 / beatType) * beatsPerBar;
     styleMidiEvents = extractDrumEvents(midi);
 
     // Desabilita botões sem seção definida
@@ -435,7 +440,7 @@ async function loadStyleFile(file) {
     styleLoaded = true;
     // Usa o nome do JSON ou faz o fallback (Item 1)
     styleName   = styleData.name || file.name.replace(/\.style$/i, '');
-    setStatus(`Style "${styleName}" — ${styleMidiEvents.length} eventos | PPQ ${stylePPQ} | ${beatsPerBar}/4`);
+    setStatus(`${styleName} - ${styleMidiEvents.length} events | PPQ ${stylePPQ} | ${beatsPerBar}/${beatType}`);
     updateHeaderLabels();
 
     // showDebugInfo(); // Removido para não abrir o popup automaticamente (Item 2)
@@ -462,7 +467,7 @@ function togglePlay() {
     initAudio();
     if (!isPlaying) {
         isPlaying = true;
-        barLengthTicks = stylePPQ * beatsPerBar; // garante inicializado
+        barLengthTicks = stylePPQ * (4 / beatType) * beatsPerBar; // garante inicializado
         nextSection    = currentSection;
         startBar(currentSection, 0, audioCtx.currentTime + 0.05);
         document.getElementById('btn-play').innerText = 'Stop';
@@ -524,7 +529,7 @@ function setStatus(msg) {
 
 function updateHeaderLabels() {
     document.getElementById('kit-label').innerText   = kitLoaded   ? `${kitName}`   : 'Sem kit';
-    document.getElementById('style-label').innerText = styleLoaded ? `${styleName}` : 'Sem estilo';
+    document.getElementById('style-label').innerText = styleLoaded ? `${styleName}` : 'Sem style';
 }
 
 function updateButtonAvailability() {

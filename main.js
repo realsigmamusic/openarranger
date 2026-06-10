@@ -1,4 +1,4 @@
-// CDN loader
+// CDN loader =====================================================================================
 function loadScript(src) {
 	return new Promise((resolve, reject) => {
 		if (document.querySelector(`script[src="${src}"]`)) { resolve(); return; }
@@ -8,13 +8,13 @@ function loadScript(src) {
 	});
 }
 
-// Estado global inicial
+// Estado global inicial ===========================================================================
 let audioCtx = null;
 let isPlaying = false;
 let bpm = 120;
 let timerId = null;
 
-// Cérebro Musical
+// Cérebro Musical ================================================================================
 let currentSection = 'Main A';
 let nextSection = 'Main A'; // o que vai tocar no próximo compasso
 let quantization = 'half'; // 'measure' | 'half' | 'beat' | 'immediate'
@@ -23,7 +23,7 @@ let returnSection = 'Main A'; // memória do Break
 const scheduleAheadTime = 0.1; // segundos à frente para agendar
 const lookahead = 25.0; // intervalo do setTimeout em ms
 
-// Data Layer
+// Data Layer =====================================================================================
 const kitBuffers = {}; // note → AudioBuffer
 let kitLoaded = false;
 let kitName = 'Sem kit';
@@ -37,14 +37,14 @@ let styleLoaded = false;
 let styleName = 'Sem style';
 let drumChannels = [8, 9]; // Padrão: canais 9 e 10 (0-based: 8 e 9)
 
-// Scheduler state
+// Scheduler state ================================================================================
 let barEvents = null; // eventos do compasso atual (relativeTick 0..barTicks-1)
 let barLengthTicks = 0; // duração de 1 compasso em ticks
 let barStartTime = 0; // audioCtx.currentTime do início do compasso atual
 let barTickOffset = 0; // tick atual dentro do compasso
 let eventIndex = 0; // próximo evento a agendar em barEvents
 
-// MIDI Parser (zero-dependency)
+// MIDI Parser (zero-dependency) ==================================================================
 function parseMidi(buffer) {
 	const data = new DataView(buffer);
 	let pos = 0;
@@ -117,15 +117,14 @@ function extractDrumEvents(midi) {
 	return events.sort((a, b) => a.tick - b.tick);
 }
 
-
-// Conversões ─────────────────────────────────────────────────────────────────
+// Conversões =====================================================================================
 function barToTick(bar) {
 	const ticksPerBeat = stylePPQ * (4 / beatType);
 	return (bar - 1) * ticksPerBeat * beatsPerBar;
 }
 function ticksToSeconds(t) { return (t / stylePPQ) * (60 / bpm); }
 
-// Eventos de uma seção ───────────────────────────────────────────────────────
+// Eventos de uma seção ===========================================================================
 function getSectionRange(sectionName) {
 	const def = styleData?.sections?.[sectionName];
 	if (!def) return null;
@@ -153,7 +152,7 @@ function sectionBarCount(sectionName) {
 	return Math.round(range.lengthTicks / barLengthTicks);
 }
 
-// Roteamento ─────────────────────────────────────────────────────────────────
+// Roteamento =====================================================================================
 function autoRoute(section) {
 	// Extrai a letra da variação: "Fill In A" → "A", "Intro B" → "B"
 	const letter = section.split(' ').pop(); // último token é sempre a letra
@@ -167,7 +166,7 @@ function autoRoute(section) {
 	return section; // loop
 }
 
-// Scheduler ─────────────────────────────────────────────────────────────────
+// Scheduler ======================================================================================
 let currentBarIndexInSection = 0;
 
 function startBar(sectionName, barIndexInSection, startTime, entryTick = 0) {
@@ -213,7 +212,7 @@ function scheduler() {
 
 			barTickOffset++;
 
-			// Verifica transição conforme quantização ───────────────────────
+			// Verifica transição conforme quantização
 			const userQueued = (nextSection !== currentSection) ? nextSection : null;
 			const isMeasureEnd = barTickOffset >= barLengthTicks;
 			const halfTicks = Math.floor(barLengthTicks / 2);
@@ -243,7 +242,6 @@ function scheduler() {
 				if (userQueued) {
 					if (userQueued === 'STOP') { scheduleStop(nextBarStart); return; }
 					// entryTick: posição absoluta no compasso onde a nova seção começa.
-					// Isso garante alinhamento musical perfeito independente do modo -
 					// a "agulha" continua no mesmo ponto do grid, só muda o conteúdo.
 					const entryTick = (isMeasureEnd || activeQuant === 'measure') ? 0 : cutTick;
 					startBar(userQueued, 0, nextBarStart, entryTick);
@@ -267,7 +265,7 @@ function scheduler() {
 	timerId = setTimeout(scheduler, lookahead);
 }
 
-// Carregamento de arquivos ──────────────────────────────────────────────────
+// Carregamento de arquivos =======================================================================
 async function ensureJSZip() {
 	if (window.JSZip) return;
 	await loadScript('./assets/vendor/jszip.min.js');
@@ -439,7 +437,7 @@ async function loadStyleFile(file) {
 	// showDebugInfo(); // Removido para não abrir o popup automaticamente
 }
 
-// Sample player ─────────────────────────────────────────────────────────────
+// Sample player ==================================================================================
 function triggerSample(note, velocity, time) {
 	if (!kitLoaded || !kitBuffers[note]) return;
 	const src = audioCtx.createBufferSource();
@@ -451,7 +449,7 @@ function triggerSample(note, velocity, time) {
 	src.start(time);
 }
 
-// Play / Stop ───────────────────────────────────────────────────────────────
+// Play / Stop ====================================================================================
 function initAudio() {
 	if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 }
@@ -489,7 +487,7 @@ function scheduleStop(atTime) {
 	}, delay);
 }
 
-// Debug / Info ──────────────────────────────────────────────────────────────
+// Debug / Info ===================================================================================
 function showDebugInfo() {
 	if (!styleLoaded) { alert('Carregue um .style primeiro!'); return; }
 
@@ -515,7 +513,7 @@ function showDebugInfo() {
 	document.getElementById('debug-modal').style.display = 'flex';
 }
 
-// UI ────────────────────────────────────────────────────────────────────────
+// UI =============================================================================================
 function setStatus(msg) {
 	document.getElementById('status-bar').innerText = msg;
 }
@@ -547,7 +545,7 @@ function updateUI() {
 	}
 }
 
-// Event listeners ───────────────────────────────────────────────────────────
+// Event listeners ================================================================================
 document.getElementById('quantization').addEventListener('change', e => {
 	quantization = e.target.value;
 });
@@ -581,11 +579,13 @@ document.getElementById('close-debug').addEventListener('click', () =>
 document.getElementById('debug-modal').style.display = 'none');
 
 document.getElementById('input-kit').addEventListener('change', async e => {
-	if (e.target.files[0]) await loadKitFile(e.target.files[0]);
+	const file = e.target.files[0];
+	if (file) { await loadKitFile(file); if (kitLoaded) await dbSave('kit', file); }
 	e.target.value = '';
 });
 document.getElementById('input-style').addEventListener('change', async e => {
-	if (e.target.files[0]) await loadStyleFile(e.target.files[0]);
+	const file = e.target.files[0];
+	if (file) { await loadStyleFile(file); if (styleLoaded) await dbSave('style', file); }
 	e.target.value = '';
 });
 
@@ -601,7 +601,61 @@ document.querySelectorAll('.grid-container .btn').forEach(btn => {
 	});
 });
 
-// Inicialização
+// Persistência via IndexedDB =====================================================================
+const DB_NAME = 'OpenArranger';
+const DB_VERSION = 1;
+const STORE = 'files';
+
+function openDB() {
+	return new Promise((resolve, reject) => {
+		const req = indexedDB.open(DB_NAME, DB_VERSION);
+		req.onupgradeneeded = e => e.target.result.createObjectStore(STORE);
+		req.onsuccess = e => resolve(e.target.result);
+		req.onerror = e => reject(e.target.error);
+	});
+}
+
+async function dbSave(key, blob) {
+	try {
+		const db = await openDB();
+		return new Promise((resolve, reject) => {
+			const tx = db.transaction(STORE, 'readwrite');
+			tx.objectStore(STORE).put(blob, key);
+			tx.oncomplete = resolve;
+			tx.onerror = e => reject(e.target.error);
+		});
+	} catch (e) { console.warn('dbSave falhou:', e); }
+}
+
+async function dbLoad(key) {
+	try {
+		const db = await openDB();
+		return new Promise((resolve, reject) => {
+			const tx = db.transaction(STORE, 'readonly');
+			const req = tx.objectStore(STORE).get(key);
+			req.onsuccess = e => resolve(e.target.result ?? null);
+			req.onerror = e => reject(e.target.error);
+		});
+	} catch (e) { console.warn('dbLoad falhou:', e); return null; }
+}
+
+async function restoreLastSession() {
+	const [kitFile, styleFile] = await Promise.all([dbLoad('kit'), dbLoad('style')]);
+	let restored = false;
+	if (kitFile) {
+		setStatus('Restaurando kit da última sessão…');
+		await loadKitFile(kitFile);
+		restored = true;
+	}
+	if (styleFile) {
+		setStatus('Restaurando style da última sessão…');
+		await loadStyleFile(styleFile);
+		restored = true;
+	}
+	if (!restored) setStatus('Carregue um .kit e um .style para começar.');
+}
+
+// Inicialização ==================================================================================
 updateUI();
 updateHeaderLabels();
-setStatus('Carregue um .kit e um .style para começar.');
+restoreLastSession();

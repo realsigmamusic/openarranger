@@ -6,7 +6,8 @@ const ASSETS = [
 	'./main.js',
 	'./manifest.json',
 	'./assets/maskable_icon_x512.png',
-	'./assets/vendor/jszip.min.js'
+	'./assets/vendor/jszip.min.js',
+	'./assets/Doto-Black.ttf'
 ];
 
 self.addEventListener('install', (e) => {

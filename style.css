@@ -26,59 +26,56 @@ header {
 	font-family: 'Doto', monospace;
 }
 
+h1 {
+	color: #aaa;
+	font-family: sans-serif;
+	padding: 0.25rem 0.5rem;
+}
+
 .lcd-screen {
 	background-color: #9ea792;
-	padding: 1rem;
+	padding: 0.6rem 0.75rem;
 	border-radius: 0.5rem;
-	box-shadow: 
-		inset 0 0 30px rgba(0, 0, 0, 0.4), /* Sombra interna */
-		0 1px 0 rgba(255, 255, 255, 0.1);
+	box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.4), 0 1px 0 rgba(255, 255, 255, 0.1);
 	position: relative;
 	overflow: hidden;
-	border: 4px solid #111;
+	border: 0.25rem solid #111;
+	margin: 0 0.3rem;
 }
 
 .lcd-content {
 	color: #1a1a1a;
 	text-shadow: 0 0 3px rgba(26, 26, 26, 0.4);
-}
-
-.lcd-screen h1 {
-	font-size: 1.25rem;
-	font-weight: normal;
-	padding: 0;
-	margin: 0 -0.25rem;
 	display: flex;
-	gap: 1rem;
-	justify-content: space-between;
+	flex-direction: column;
+	gap: 0.35rem;
 }
 
-#btn-debug {
-	font-size: 0.75rem;
+/* título / arquivos / info --- */
+.header-top {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+}
+
+.load-zone {
+	display: flex;
+	align-items: center;
+	gap: 0.4rem;
+	flex: 1;
+	min-width: 0;
 }
 
 .style-selector {
 	display: flex;
-	gap: 1.5rem;
+	align-items: center;
+	gap: 0.4rem;
+	flex: 1;
+	min-width: 0;
+	margin-left: -0.3rem;
 }
 
 .style-selector select {
-	font-size: 1.25rem;
-	color: #1a1a1a;
-	text-shadow: 0 0 3px rgba(26, 26, 26, 0.4);
-	font-family: 'Doto', monospace;
-	background: transparent;
-	border: none;
-	padding: 0;
-	margin: 0 -0.25rem;
-	width: 100%;
-}
-
-#btn-add-style {
-	font-size: 1rem;
-}
-
-.lcd-screen button {
 	font-size: 1rem;
 	color: #1a1a1a;
 	text-shadow: 0 0 3px rgba(26, 26, 26, 0.4);
@@ -86,47 +83,121 @@ header {
 	background: transparent;
 	border: none;
 	padding: 0;
+	flex: 1;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 
-.info-bar {
+.load-btn {
+	font-size: 0.75rem;
+	font-family: 'Doto', monospace;
+	color: #1a1a1a;
+	background: rgba(0,0,0,0.12);
+	border: 1px solid rgba(0,0,0,0.25);
+	border-radius: 0.25rem;
+	padding: 0.15rem 0.4rem;
+	white-space: nowrap;
+	cursor: pointer;
+	flex-shrink: 0;
+}
+
+.load-btn:active {
+	background: rgba(0,0,0,0.25);
+}
+
+.info-btn {
+	font-size: 1rem;
+	font-family: 'Doto', monospace;
+	color: #1a1a1a;
+	background: rgba(0,0,0,0.12);
+	border: 1px solid rgba(0,0,0,0.25);
+	border-radius: 0.25rem;
+	cursor: pointer;
+	padding: 0 0.5rem;
+	flex-shrink: 0;
+}
+
+/* --- STATUS BAR --- */
+.status-bar {
+	font-size: 0.85rem;
+	opacity: 0.8;
+	border-top: 1px solid rgba(0,0,0,0.15);
+	border-bottom: 1px solid rgba(0,0,0,0.15);
+	padding: 0.15rem 0;
+}
+
+/* transporte / performance */
+.transport-zone {
 	display: flex;
-	gap: 1rem;
+	align-items: center;
+	gap: 0.75rem;
 	justify-content: space-between;
 }
 
-.info-bar button {
-	font-size: 1rem;
+.transport-label {
+	font-size: 0.6rem;
+	opacity: 0.8;
+	display: block;
+	margin-bottom: 0.1rem;
+	letter-spacing: 0.05em;
 }
 
-.info-bar input {
-	width: 5rem;
-	color: #1a1a1a;
-	text-shadow: 0 0 3px rgba(26, 26, 26, 0.4);
-	font-family: 'Doto', monospace;
-	font-size: 1rem;
-	text-align: center; 
-	background: transparent;
-	border: none;
-	padding: 0;
-	margin: 0;
+/* BPM */
+.bpm-block {
+	display: flex;
+	flex-direction: column;
 }
 
-.indicator {
-	font-size: 1rem;
-	cursor: pointer;
-	padding: 0 0.25rem;
-}
-
-.volume-control {
+.bpm-controls {
 	display: flex;
 	align-items: center;
 	gap: 0.25rem;
 }
 
+.bpm-controls button {
+	font-size: 1rem;
+	color: #1a1a1a;
+	font-family: 'Doto', monospace;
+	background: transparent;
+	border: 1px solid rgba(0,0,0,0.15);
+	border-radius: 0.25rem;
+	cursor: pointer;
+	padding: 0.25rem;
+	line-height: 1;
+}
+
+.bpm-controls input {
+	width: 3.5rem;
+	color: #1a1a1a;
+	text-shadow: 0 0 3px rgba(26, 26, 26, 0.4);
+	font-family: 'Doto', monospace;
+	font-size: 1.1rem;
+	text-align: center;
+	background: transparent;
+	border: none;
+	padding: 0;
+}
+
+/* Beat indicator */
+.indicator {
+	font-size: 2rem;
+	cursor: pointer;
+	padding: 0 0.5rem;
+	border: 1px solid rgba(0,0,0,0.15);
+}
+
+/* Volume */
+.volume-block {
+	display: flex;
+	flex-direction: column;
+}
+
 #volume-slider {
 	-webkit-appearance: none;
 	appearance: none;
-	width: 5rem;
+	width: 4rem;
 	height: 4px;
 	border-radius: 2px;
 	background: #1a1a1a;
@@ -153,19 +224,20 @@ header {
 	cursor: pointer;
 }
 
-.info-bar select {
-	font-size: 1rem;
+/* Quantização */
+.quant-block {
+	display: flex;
+	flex-direction: column;
+}
+
+.quant-block select {
+	font-size: 0.85rem;
 	color: #1a1a1a;
 	text-shadow: 0 0 3px rgba(26, 26, 26, 0.4);
 	font-family: 'Doto', monospace;
 	background: transparent;
 	border: none;
 	padding: 0;
-	margin: 0 -0.25rem;
-}
-
-.status-bar {
-	font-size: 1rem;
 }
 
 /* GRADE */

@@ -26,38 +26,48 @@
 <body>
 
 	<header>
+		<h1>OpenArranger</h1>
 		<div class="lcd-screen">
 			<div class="lcd-content">
-				<h1 class="lcd-label">OpenArranger<button id="btn-debug">Info</button></h1>
-				
-				<div class="file-btns">
-					<div class="style-selector">
-						<select id="style-select" title="Styles carregados"></select>
-						<button id="btn-add-style" title="Adicionar style">+</button>
+				<div class="header-top">
+					<div class="load-zone">
+						<div class="style-selector">
+							<select id="style-select" title="Styles carregados"></select>
+							<button id="btn-add-style" class="load-btn" title="Adicionar style">Style</button>
+						</div>
+						<button id="btn-load-kit" class="load-btn" title="Carregar drumkit">
+							<span id="kit-label">Kit</span>
+						</button>
 					</div>
-					<button id="btn-load-kit">
-						<span id="kit-label">kit</span>
-					</button>
+					<button id="btn-debug" class="info-btn" title="Info">ℹ</button>
 				</div>
-				<div id="status-bar" class="status-bar">Inicializando…</div>
-				<div class="info-bar">
-					<div class="bpm-controls">
-						<button id="bpm-minus">-</button>
-						<input type="number" id="bpm-display" value="120" min="40" max="250">
-						<button id="bpm-plus">+</button>
+				<div id="status-bar" class="status-bar">Inicializando...</div>
+				<div class="transport-zone">
+					<div class="bpm-block">
+						<span class="transport-label">Bpm</span>
+						<div class="bpm-controls">
+							<button id="bpm-minus">-</button>
+							<input type="number" id="bpm-display" value="120" min="40" max="250">
+							<button id="bpm-plus">+</button>
+						</div>
 					</div>
-					<span id="beat-indicator" class="indicator">---</span>
-					<div class="volume-control">
+					<span id="beat-indicator" class="indicator" title="Toque para tap tempo">-</span>
+					<div class="volume-block">
+						<span class="transport-label">Volume</span>
 						<input type="range" id="volume-slider" min="0" max="100" value="100" title="Volume master">
 					</div>
-					<select class="lcd-value" id="quantization" title="Quantização">
-						<option value="measure">Measure</option>
-						<option value="half" selected>Half measure</option>
-						<option value="beat">Beat</option>
-						<option value="immediate">Imediate</option>
-					</select>
+					<div class="quant-block">
+						<span class="transport-label">Quantization</span>
+						<select class="lcd-value" id="quantization" title="Quantização">
+							<option value="measure">Measure</option>
+							<option value="half" selected>Half measure</option>
+							<option value="beat">Beat</option>
+							<option value="immediate">Imediate</option>
+						</select>
+					</div>
 				</div>
-				<input type="file" id="input-kit"   accept=".kit"   style="display:none">
+
+				<input type="file" id="input-kit" accept=".kit" style="display:none">
 				<input type="file" id="input-style" accept=".style" multiple style="display:none">
 			</div>
 		</div>

@@ -547,7 +547,7 @@ function togglePlay() {
 		clearTimeout(timerId);
 		document.getElementById('btn-play').innerText = 'Start';
 		document.getElementById('btn-play').classList.remove('playing');
-		document.getElementById('beat-indicator').innerText = '---';
+		document.getElementById('beat-indicator').innerText = '-';
 	}
 }
 
@@ -560,7 +560,7 @@ function scheduleStop(atTime) {
 		nextSection = 'Main A';
 		document.getElementById('btn-play').innerText = 'Start';
 		document.getElementById('btn-play').classList.remove('playing');
-		document.getElementById('beat-indicator').innerText = '---';
+		document.getElementById('beat-indicator').innerText = '-';
 		updateUI();
 	}, delay);
 }

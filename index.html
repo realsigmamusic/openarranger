@@ -31,9 +31,10 @@
 				<h1 class="lcd-label">OpenArranger<button id="btn-debug">Info</button></h1>
 				
 				<div class="file-btns">
-					<button id="btn-load-style">
-						<span id="style-label">Style</span>
-					</button>
+					<div class="style-selector">
+						<select id="style-select" title="Styles carregados"></select>
+						<button id="btn-add-style" title="Adicionar style">+</button>
+					</div>
 					<button id="btn-load-kit">
 						<span id="kit-label">kit</span>
 					</button>
@@ -54,7 +55,7 @@
 					</select>
 				</div>
 				<input type="file" id="input-kit"   accept=".kit"   style="display:none">
-				<input type="file" id="input-style" accept=".style" style="display:none">
+				<input type="file" id="input-style" accept=".style" multiple style="display:none">
 			</div>
 		</div>
 	</header>

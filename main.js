@@ -28,14 +28,62 @@ const kitBuffers = {}; // note → AudioBuffer
 let kitLoaded = false;
 let kitName = 'Loade drumkit';
 
-let styleData = null; // style.json parseado
-let styleMidiEvents = null; // [{ tick, note, velocity }]
-let stylePPQ = 480;	// lido do cabeçalho MIDI
-let beatsPerBar = 4; // lido do timeSignature[0] (numerador)
-let beatType = 4; // lido do timeSignature[1] (denominador)
+// Styles: array de { name, styleData, styleMidiEvents, stylePPQ, beatsPerBar, beatType, drumChannels }
+let styles = [];
+let activeStyleIndex = -1; // índice do style ativo
+
+// Atalhos para o style ativo (lidos dinamicamente via getters funcionais)
+let styleData = null;
+let styleMidiEvents = null;
+let stylePPQ = 480;
+let beatsPerBar = 4;
+let beatType = 4;
 let styleLoaded = false;
 let styleName = 'Load style';
-let drumChannels = [8, 9]; // Padrão: canais 9 e 10 (0-based: 8 e 9)
+let drumChannels = [8, 9];
+
+function applyStyle(index) {
+	if (index < 0 || index >= styles.length) return;
+	activeStyleIndex = index;
+	const s = styles[index];
+	styleData = s.styleData;
+	styleMidiEvents = s.styleMidiEvents;
+	stylePPQ = s.stylePPQ;
+	beatsPerBar = s.beatsPerBar;
+	beatType = s.beatType;
+	drumChannels = s.drumChannels;
+	styleLoaded = true;
+	styleName = s.name;
+	barLengthTicks = stylePPQ * (4 / beatType) * beatsPerBar;
+	bpm = s.bpm;
+	document.getElementById('bpm-display').value = bpm;
+	updateButtonAvailability();
+	updateHeaderLabels();
+	setStatus(`Events: ${styleMidiEvents.length} PPQ ${stylePPQ}`);
+}
+
+function updateStyleSelect() {
+	const sel = document.getElementById('style-select');
+	const prev = sel.value;
+	sel.innerHTML = '';
+	if (styles.length === 0) {
+		const opt = document.createElement('option');
+		opt.value = '';
+		opt.textContent = 'Load style';
+		sel.appendChild(opt);
+		return;
+	}
+	styles.forEach((s, i) => {
+		const opt = document.createElement('option');
+		opt.value = i;
+		opt.textContent = s.name;
+		sel.appendChild(opt);
+	});
+	// Mantém seleção ou vai pro último
+	const newIdx = styles.findIndex((_, i) => String(i) === prev);
+	sel.value = newIdx >= 0 ? newIdx : styles.length - 1;
+	applyStyle(parseInt(sel.value));
+}
 
 // Scheduler state ================================================================================
 let barEvents = null; // eventos do compasso atual (relativeTick 0..barTicks-1)
@@ -396,45 +444,39 @@ async function loadStyleFile(file) {
 	const jsonEntry = zip.files['style.json'];
 	if (!jsonEntry) { setStatus('style.json não encontrado'); return; }
 
-	styleData = JSON.parse(await jsonEntry.async('string'));
+	const sd = JSON.parse(await jsonEntry.async('string'));
 
 	// Define os canais de bateria dinamicamente (1-based no JSON para facilitar)
-	if (styleData.drumChannel !== undefined) {
-		if (Array.isArray(styleData.drumChannel)) {
-			drumChannels = styleData.drumChannel.map(ch => ch - 1);
-		} else {
-			drumChannels = [styleData.drumChannel - 1];
-		}
+	let dc;
+	if (sd.drumChannel !== undefined) {
+		dc = Array.isArray(sd.drumChannel) ? sd.drumChannel.map(ch => ch - 1) : [sd.drumChannel - 1];
 	} else {
-		drumChannels = [8, 9]; // Fallback se não existir no JSON
-	}
-
-	// Atualiza o BPM a partir do JSON
-	if (styleData.bpm) {
-		bpm = styleData.bpm;
-		document.getElementById('bpm-display').value = bpm;
+		dc = [8, 9];
 	}
 
 	const midEntry = zip.files['style.mid'];
 	if (!midEntry) { setStatus('style.mid não encontrado'); return; }
 
 	const midi = parseMidi(await midEntry.async('arraybuffer'));
-	stylePPQ = midi.ppq;
-	beatsPerBar = styleData.timeSignature?.[0] ?? 4;
-	beatType = styleData.timeSignature?.[1] ?? 4;
-	barLengthTicks = stylePPQ * (4 / beatType) * beatsPerBar;
-	styleMidiEvents = extractDrumEvents(midi);
+	const ppq = midi.ppq;
+	const bpb = sd.timeSignature?.[0] ?? 4;
+	const bt = sd.timeSignature?.[1] ?? 4;
+	const events = extractDrumEvents(midi);
+	const sName = sd.name || file.name.replace(/\.style$/i, '');
 
-	// Desabilita botões sem seção definida
-	updateButtonAvailability();
+	// Verifica se já existe um style com mesmo nome e substitui
+	const existing = styles.findIndex(s => s.name === sName);
+	const entry = { name: sName, styleData: sd, styleMidiEvents: events,
+		stylePPQ: ppq, beatsPerBar: bpb, beatType: bt, drumChannels: dc,
+		bpm: sd.bpm || bpm };
 
-	styleLoaded = true;
-	// Usa o nome do JSON ou faz o fallback
-	styleName = styleData.name || file.name.replace(/\.style$/i, '');
-	setStatus(`Events: ${styleMidiEvents.length} PPQ: ${stylePPQ}`);
-	updateHeaderLabels();
+	if (existing >= 0) {
+		styles[existing] = entry;
+	} else {
+		styles.push(entry);
+	}
 
-	// showDebugInfo();
+	updateStyleSelect(); // aplica e atualiza UI
 }
 
 // Sample player ==================================================================================
@@ -520,7 +562,7 @@ function setStatus(msg) {
 
 function updateHeaderLabels() {
 	document.getElementById('kit-label').innerText = kitLoaded ? `${kitName}` : 'Load drumkit';
-	document.getElementById('style-label').innerText = styleLoaded ? `${styleName} - ${beatsPerBar}/${beatType}` : 'Load style';
+	// O style agora é gerenciado pelo select via updateStyleSelect()
 }
 
 function updateButtonAvailability() {
@@ -572,8 +614,15 @@ bpmInput.addEventListener('change', (e) => {
 
 document.getElementById('btn-load-kit').addEventListener('click', () =>
 document.getElementById('input-kit').click());
-document.getElementById('btn-load-style').addEventListener('click', () =>
+document.getElementById('btn-add-style').addEventListener('click', () =>
 document.getElementById('input-style').click());
+document.getElementById('style-select').addEventListener('change', async e => {
+	const idx = parseInt(e.target.value);
+	if (!isNaN(idx)) {
+		applyStyle(idx);
+		await dbSave('style:active', idx);
+	}
+});
 document.getElementById('btn-debug').addEventListener('click', showDebugInfo);
 document.getElementById('close-debug').addEventListener('click', () =>
 document.getElementById('debug-modal').style.display = 'none');
@@ -584,8 +633,18 @@ document.getElementById('input-kit').addEventListener('change', async e => {
 	e.target.value = '';
 });
 document.getElementById('input-style').addEventListener('change', async e => {
-	const file = e.target.files[0];
-	if (file) { await loadStyleFile(file); if (styleLoaded) await dbSave('style', file); }
+	for (const file of e.target.files) {
+		await loadStyleFile(file);
+	}
+	// Salva cada style indexado por posição no array
+	for (let i = 0; i < styles.length; i++) {
+		const file = Array.from(e.target.files).find(f =>
+			f.name.replace(/\.style$/i, '') === styles[i].name || styles[i].name.includes(f.name.replace(/\.style$/i, ''))
+		);
+		if (file) await dbSave(`style:${i}`, file);
+	}
+	await dbSave('style:count', styles.length);
+	await dbSave('style:active', activeStyleIndex);
 	e.target.value = '';
 });
 
@@ -640,18 +699,35 @@ async function dbLoad(key) {
 }
 
 async function restoreLastSession() {
-	const [kitFile, styleFile] = await Promise.all([dbLoad('kit'), dbLoad('style')]);
+	// styles são salvos individualmente com chave "style:N"
+	const [kitFile] = await Promise.all([dbLoad('kit')]);
 	let restored = false;
+
 	if (kitFile) {
 		setStatus('Restaurando kit da última sessão...');
 		await loadKitFile(kitFile);
 		restored = true;
 	}
-	if (styleFile) {
-		setStatus('Restaurando style da última sessão...');
-		await loadStyleFile(styleFile);
-		restored = true;
+
+	// Descobre quantos styles estão salvos
+	let i = 0;
+	while (true) {
+		const sf = await dbLoad(`style:${i}`);
+		if (!sf) break;
+		setStatus(`Restaurando style ${i + 1}...`);
+		await loadStyleFile(sf);
+		i++;
 	}
+	if (i > 0) {
+		restored = true;
+		// Restaura o style que estava ativo
+		const savedActive = await dbLoad('style:active');
+		const targetIdx = (savedActive != null && savedActive < styles.length) ? savedActive : styles.length - 1;
+		applyStyle(targetIdx);
+		const sel = document.getElementById('style-select');
+		sel.value = targetIdx;
+	}
+
 	if (!restored) setStatus('Carregue um .kit e um .style para começar.');
 }
 

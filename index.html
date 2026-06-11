@@ -26,7 +26,7 @@
 <body>
 
 	<header>
-		<h1>OpenArranger</h1>
+		<h1>OpenArranger <span id="app-version"></span></h1>
 		<div class="lcd-screen">
 			<div class="lcd-content">
 				<div class="header-top">
@@ -51,7 +51,10 @@
 							<button id="bpm-plus">+</button>
 						</div>
 					</div>
-					<span id="beat-indicator" class="indicator" title="Toque para tap tempo">-</span>
+					<div class="tap-tempo-block">
+						<span class="transport-label">Tap</span>
+						<span id="beat-indicator" class="indicator" title="Toque para tap tempo">-</span>
+					</div>
 					<div class="volume-block">
 						<span class="transport-label">Volume</span>
 						<input type="range" id="volume-slider" min="0" max="100" value="100" title="Volume master">

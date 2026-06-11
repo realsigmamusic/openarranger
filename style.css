@@ -113,6 +113,44 @@ header {
 
 .indicator {
 	font-size: 1rem;
+	cursor: pointer;
+	padding: 0 0.25rem;
+}
+
+.volume-control {
+	display: flex;
+	align-items: center;
+	gap: 0.25rem;
+}
+
+#volume-slider {
+	-webkit-appearance: none;
+	appearance: none;
+	width: 5rem;
+	height: 4px;
+	border-radius: 2px;
+	background: #1a1a1a;
+	outline: none;
+	cursor: pointer;
+}
+
+#volume-slider::-webkit-slider-thumb {
+	-webkit-appearance: none;
+	appearance: none;
+	width: 14px;
+	height: 14px;
+	border-radius: 50%;
+	background: #1a1a1a;
+	cursor: pointer;
+}
+
+#volume-slider::-moz-range-thumb {
+	width: 14px;
+	height: 14px;
+	border-radius: 50%;
+	background: #1a1a1a;
+	border: none;
+	cursor: pointer;
 }
 
 .info-bar select {

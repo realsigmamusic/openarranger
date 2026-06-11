@@ -244,70 +244,98 @@ function scheduler() {
 		const tickTime = barStartTime + ticksToSeconds(barTickOffset);
 		if (tickTime >= horizon) break;
 
-		// Dispara samples MIDI
+		// Dispara todos os eventos que caem no tick atual
 		while (eventIndex < barEvents.length &&
 			barEvents[eventIndex].relativeTick <= barTickOffset) {
 			const ev = barEvents[eventIndex++];
-		const evT = barStartTime + ticksToSeconds(ev.relativeTick);
-		triggerSample(ev.note, ev.velocity, evT);
-			}
+			const evT = barStartTime + ticksToSeconds(ev.relativeTick);
+			triggerSample(ev.note, ev.velocity, evT);
+		}
 
-			// Beat indicator (1-based)
-			const beat = Math.floor(barTickOffset / (stylePPQ * (4 / beatType)));
+		// Beat indicator: atualiza só quando o beat muda (evita rAF por tick)
+		const ticksPerBeat = stylePPQ * (4 / beatType);
+		const beat = Math.floor(barTickOffset / ticksPerBeat);
+		const prevBeat = Math.floor((barTickOffset === 0 ? 0 : barTickOffset - 1) / ticksPerBeat);
+		if (barTickOffset === 0 || beat !== prevBeat) {
+			const displayBeat = beat + 1;
 			requestAnimationFrame(() => {
-				document.getElementById('beat-indicator').innerText = `${beat + 1}`;
+				document.getElementById('beat-indicator').innerText = `${displayBeat}`;
 			});
+		}
 
+		// Verifica transição conforme quantização
+		const userQueued = (nextSection !== currentSection) ? nextSection : null;
+		const isMeasureEnd = barTickOffset + 1 >= barLengthTicks;
+		const halfTicks = Math.floor(barLengthTicks / 2);
+		const nextTick = barTickOffset + 1;
+		const isHalfEnd = !isMeasureEnd && (nextTick % halfTicks === 0) && nextTick > 0;
+		const isBeatEnd = !isMeasureEnd && !isHalfEnd && (nextTick % stylePPQ === 0) && nextTick > 0;
+		const isImmediate = !isMeasureEnd && !isHalfEnd && !isBeatEnd;
+
+		// Quantização só se aplica a Fills - todo o resto usa 'measure'
+		const isFill = userQueued && userQueued.startsWith('Fill ');
+		const activeQuant = isFill ? quantization : 'measure';
+
+		// Decide se é hora de trocar agora
+		const shouldTransition = isMeasureEnd || (
+			userQueued && (
+				(activeQuant === 'half' && isHalfEnd) ||
+				(activeQuant === 'beat' && isBeatEnd) ||
+				(activeQuant === 'immediate' && isImmediate)
+			)
+		);
+
+		if (shouldTransition) {
 			barTickOffset++;
+			const cutTick = isMeasureEnd ? barLengthTicks : barTickOffset;
+			const nextBarStart = barStartTime + ticksToSeconds(cutTick);
 
-			// Verifica transição conforme quantização
-			const userQueued = (nextSection !== currentSection) ? nextSection : null;
-			const isMeasureEnd = barTickOffset >= barLengthTicks;
-			const halfTicks = Math.floor(barLengthTicks / 2);
-			const isHalfEnd = !isMeasureEnd && (barTickOffset % halfTicks === 0) && barTickOffset > 0;
-			const isBeatEnd = !isMeasureEnd && !isHalfEnd && (barTickOffset % stylePPQ === 0) && barTickOffset > 0;
-			const isImmediate = !isMeasureEnd && !isHalfEnd && !isBeatEnd;
+			if (userQueued) {
+				if (userQueued === 'STOP') { scheduleStop(nextBarStart); return; }
+				const entryTick = (isMeasureEnd || activeQuant === 'measure') ? 0 : cutTick;
+				startBar(userQueued, 0, nextBarStart, entryTick);
+			} else {
+				const totalBars = sectionBarCount(currentSection);
+				const nextBarIdx = currentBarIndexInSection + 1;
 
-			// Quantização só se aplica a Fills - todo o resto usa 'measure'
-			const isFill = userQueued && userQueued.startsWith('Fill ');
-			const activeQuant = isFill ? quantization : 'measure';
-
-			// Decide se é hora de trocar agora
-			const shouldTransition = isMeasureEnd || (
-				userQueued && (
-					(activeQuant === 'half' && isHalfEnd) ||
-					(activeQuant === 'beat' && isBeatEnd) ||
-					(activeQuant === 'immediate' && isImmediate)
-				)
-			);
-
-			if (shouldTransition) {
-				// O tick absoluto dentro do compasso no momento da transição
-				// (0 se fim do compasso, barTickOffset se corte antecipado)
-				const cutTick = isMeasureEnd ? barLengthTicks : barTickOffset;
-				const nextBarStart = barStartTime + ticksToSeconds(cutTick);
-
-				if (userQueued) {
-					if (userQueued === 'STOP') { scheduleStop(nextBarStart); return; }
-					// entryTick: posição absoluta no compasso onde a nova seção começa.
-					// a "agulha" continua no mesmo ponto do grid, só muda o conteúdo.
-					const entryTick = (isMeasureEnd || activeQuant === 'measure') ? 0 : cutTick;
-					startBar(userQueued, 0, nextBarStart, entryTick);
+				if (nextBarIdx < totalBars) {
+					startBar(currentSection, nextBarIdx, nextBarStart);
 				} else {
-					// Automação: só roda no fim do compasso
-					const totalBars = sectionBarCount(currentSection);
-					const nextBarIdx = currentBarIndexInSection + 1;
-
-					if (nextBarIdx < totalBars) {
-						startBar(currentSection, nextBarIdx, nextBarStart);
-					} else {
-						const auto = autoRoute(currentSection);
-						if (auto === 'STOP') { scheduleStop(nextBarStart); return; }
-						nextSection = auto;
-						startBar(auto, 0, nextBarStart);
-					}
+					const auto = autoRoute(currentSection);
+					if (auto === 'STOP') { scheduleStop(nextBarStart); return; }
+					nextSection = auto;
+					startBar(auto, 0, nextBarStart);
 				}
 			}
+			// startBar já reiniciou barTickOffset; não incrementamos de novo
+			continue;
+		}
+
+		// Salta direto para o tick do próximo evento (ou fim do compasso) em vez de ++1
+		const nextEventTick = eventIndex < barEvents.length
+			? barEvents[eventIndex].relativeTick
+			: barLengthTicks - 1;
+
+		// Próxima fronteira de quantização relevante
+		let nextBoundary = barLengthTicks - 1; // padrão: fim do compasso
+		if (userQueued) {
+			if (activeQuant === 'half') {
+				const nextHalf = Math.ceil((barTickOffset + 1) / halfTicks) * halfTicks - 1;
+				nextBoundary = Math.min(nextBoundary, nextHalf);
+			} else if (activeQuant === 'beat') {
+				const nextBeatBoundary = Math.ceil((barTickOffset + 1) / stylePPQ) * stylePPQ - 1;
+				nextBoundary = Math.min(nextBoundary, nextBeatBoundary);
+			} else if (activeQuant === 'immediate') {
+				nextBoundary = barTickOffset; // trata imediatamente
+			}
+		}
+
+		// Próximo beat boundary para o indicador
+		const nextBeatTick = (beat + 1) * ticksPerBeat;
+
+		barTickOffset = Math.min(nextEventTick, nextBoundary, nextBeatTick, barLengthTicks - 1);
+		// Se já estamos no tick calculado, avança 1 para não travar
+		if (barTickOffset <= (nextTick - 1)) barTickOffset = nextTick;
 	}
 
 	timerId = setTimeout(scheduler, lookahead);
@@ -480,6 +508,9 @@ async function loadStyleFile(file) {
 }
 
 // Sample player ==================================================================================
+let masterGain = null;
+let masterVolume = 1.0;
+
 function triggerSample(note, velocity, time) {
 	if (!kitLoaded || !kitBuffers[note]) return;
 	const src = audioCtx.createBufferSource();
@@ -487,13 +518,18 @@ function triggerSample(note, velocity, time) {
 	src.buffer = kitBuffers[note];
 	gain.gain.setValueAtTime(velocity / 127, time);
 	src.connect(gain);
-	gain.connect(audioCtx.destination);
+	gain.connect(masterGain);
 	src.start(time);
 }
 
 // Play / Stop ====================================================================================
 function initAudio() {
-	if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+	if (!audioCtx) {
+		audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+		masterGain = audioCtx.createGain();
+		masterGain.gain.value = masterVolume;
+		masterGain.connect(audioCtx.destination);
+	}
 }
 
 function togglePlay() {
@@ -587,7 +623,61 @@ function updateUI() {
 	}
 }
 
+// Tap Tempo ======================================================================================
+const TAP_MAX_GAP = 2000; // reseta se passar mais de 2s entre taps
+const TAP_MAX_SAMPLES = 8;
+let tapTimes = [];
+
+function processTap() {
+	const now = performance.now();
+	if (tapTimes.length > 0 && (now - tapTimes[tapTimes.length - 1]) > TAP_MAX_GAP) {
+		tapTimes = [];
+	}
+	tapTimes.push(now);
+	if (tapTimes.length > TAP_MAX_SAMPLES) tapTimes.shift();
+	if (tapTimes.length < 2) { setStatus('Tap de novo para calcular BPM...'); return; }
+
+	const gaps = [];
+	for (let i = 1; i < tapTimes.length; i++) gaps.push(tapTimes[i] - tapTimes[i - 1]);
+	const avgGap = gaps.reduce((a, b) => a + b, 0) / gaps.length;
+	const newBpm = Math.round(60000 / avgGap);
+	bpm = Math.max(40, Math.min(250, newBpm));
+	bpmInput.value = bpm;
+	setStatus(`Tap tempo: ${bpm} BPM`);
+}
+
+// Long-press no BPM +/- para incremento contínuo ================================================
+function makeLongPress(btn, action) {
+	let interval = null;
+	let timeout = null;
+
+	const start = () => {
+		action();
+		timeout = setTimeout(() => {
+			interval = setInterval(action, 80);
+		}, 400);
+	};
+	const stop = () => {
+		clearTimeout(timeout);
+		clearInterval(interval);
+		timeout = null;
+		interval = null;
+	};
+
+	btn.addEventListener('mousedown', start);
+	btn.addEventListener('touchstart', e => { e.preventDefault(); start(); }, { passive: false });
+	btn.addEventListener('mouseup', stop);
+	btn.addEventListener('mouseleave', stop);
+	btn.addEventListener('touchend', stop);
+	btn.addEventListener('touchcancel', stop);
+}
+
 // Event listeners ================================================================================
+document.getElementById('volume-slider').addEventListener('input', e => {
+	masterVolume = parseInt(e.target.value, 10) / 100;
+	if (masterGain) masterGain.gain.value = masterVolume;
+});
+
 document.getElementById('quantization').addEventListener('change', e => {
 	quantization = e.target.value;
 });
@@ -595,15 +685,18 @@ document.getElementById('btn-play').addEventListener('click', togglePlay);
 
 const bpmInput = document.getElementById('bpm-display');
 
-document.getElementById('bpm-plus').addEventListener('click', () => {
+makeLongPress(document.getElementById('bpm-plus'), () => {
 	bpm = Math.min(250, bpm + 1);
 	bpmInput.value = bpm;
 });
 
-document.getElementById('bpm-minus').addEventListener('click', () => {
+makeLongPress(document.getElementById('bpm-minus'), () => {
 	bpm = Math.max(40, bpm - 1);
 	bpmInput.value = bpm;
 });
+
+document.getElementById('beat-indicator').addEventListener('click', processTap);
+document.getElementById('beat-indicator').title = 'Toque para fazer tap tempo';
 
 bpmInput.addEventListener('change', (e) => {
 	let val = parseInt(e.target.value, 10);
@@ -636,14 +729,19 @@ document.getElementById('input-style').addEventListener('change', async e => {
 	for (const file of e.target.files) {
 		await loadStyleFile(file);
 	}
-	// Salva cada style indexado por posição no array
+	// Salva cada style indexado por posição no array e constrói manifesto explícito
+	const manifest = [];
 	for (let i = 0; i < styles.length; i++) {
 		const file = Array.from(e.target.files).find(f =>
 			f.name.replace(/\.style$/i, '') === styles[i].name || styles[i].name.includes(f.name.replace(/\.style$/i, ''))
 		);
-		if (file) await dbSave(`style:${i}`, file);
+		if (file) {
+			const key = `style:${i}`;
+			await dbSave(key, file);
+			manifest.push(key);
+		}
 	}
-	await dbSave('style:count', styles.length);
+	await dbSave('style:manifest', manifest);
 	await dbSave('style:active', activeStyleIndex);
 	e.target.value = '';
 });
@@ -665,13 +763,17 @@ const DB_NAME = 'OpenArranger';
 const DB_VERSION = 1;
 const STORE = 'files';
 
+// Singleton: abre a conexão uma única vez e reutiliza
+let _dbPromise = null;
 function openDB() {
-	return new Promise((resolve, reject) => {
+	if (_dbPromise) return _dbPromise;
+	_dbPromise = new Promise((resolve, reject) => {
 		const req = indexedDB.open(DB_NAME, DB_VERSION);
 		req.onupgradeneeded = e => e.target.result.createObjectStore(STORE);
 		req.onsuccess = e => resolve(e.target.result);
-		req.onerror = e => reject(e.target.error);
+		req.onerror = e => { _dbPromise = null; reject(e.target.error); };
 	});
+	return _dbPromise;
 }
 
 async function dbSave(key, blob) {
@@ -699,8 +801,10 @@ async function dbLoad(key) {
 }
 
 async function restoreLastSession() {
-	// styles são salvos individualmente com chave "style:N"
-	const [kitFile] = await Promise.all([dbLoad('kit')]);
+	const [kitFile, styleManifest] = await Promise.all([
+		dbLoad('kit'),
+		dbLoad('style:manifest'),
+	]);
 	let restored = false;
 
 	if (kitFile) {
@@ -709,18 +813,30 @@ async function restoreLastSession() {
 		restored = true;
 	}
 
-	// Descobre quantos styles estão salvos
-	let i = 0;
-	while (true) {
-		const sf = await dbLoad(`style:${i}`);
-		if (!sf) break;
-		setStatus(`Restaurando style ${i + 1}...`);
-		await loadStyleFile(sf);
-		i++;
+	// Usa o manifesto explícito (lista de chaves) para restaurar styles sem while(true)
+	const keys = Array.isArray(styleManifest) ? styleManifest : [];
+	// Fallback: se não há manifesto, tenta varredura sequencial legada (compatibilidade)
+	if (keys.length === 0) {
+		let i = 0;
+		while (true) {
+			const sf = await dbLoad(`style:${i}`);
+			if (!sf) break;
+			setStatus(`Restaurando style ${i + 1}...`);
+			await loadStyleFile(sf);
+			i++;
+		}
+		if (i > 0) restored = true;
+	} else {
+		for (const key of keys) {
+			const sf = await dbLoad(key);
+			if (!sf) continue;
+			setStatus(`Restaurando style ${key}...`);
+			await loadStyleFile(sf);
+			restored = true;
+		}
 	}
-	if (i > 0) {
-		restored = true;
-		// Restaura o style que estava ativo
+
+	if (styles.length > 0) {
 		const savedActive = await dbLoad('style:active');
 		const targetIdx = (savedActive != null && savedActive < styles.length) ? savedActive : styles.length - 1;
 		applyStyle(targetIdx);

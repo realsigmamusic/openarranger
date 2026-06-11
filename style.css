@@ -1,3 +1,8 @@
+@font-face {
+	font-family: 'Doto';
+	src: url('./assets/Doto-Black.ttf') format('truetype');
+}
+
 * {
 	box-sizing: border-box;
 	margin: 0;
@@ -16,89 +21,101 @@ body {
 }
 
 /* HEADER */
-.control-bar {
+header {
+	background: linear-gradient(145deg, #2b2b2b, #121212);
+	font-family: 'Doto', monospace;
+}
+
+.lcd-screen {
+	background-color: #9ea792;
+	padding: 1rem;
+	border-radius: 0.5rem;
+	box-shadow: 
+		inset 0 0 30px rgba(0, 0, 0, 0.4), /* Sombra interna */
+		0 1px 0 rgba(255, 255, 255, 0.1);
+	position: relative;
+	overflow: hidden;
+	border: 4px solid #111;
+}
+
+.lcd-content {
+	color: #1a1a1a;
+	text-shadow: 0 0 3px rgba(26, 26, 26, 0.4);
+}
+
+.lcd-screen h1 {
+	font-size: 2rem;
+	font-weight: normal;
+	padding: 0;
+	margin: 0 -0.25rem;
+}
+
+h1 {
 	display: flex;
-	background: #1e1e1e;
-	padding: 0.5rem;
-	align-items: center;
+	gap: 1rem;
 	justify-content: space-between;
-	gap: 0.25rem;
-	flex-shrink: 0;
+}
+
+#btn-debug {
+	font-size: 0.75rem;
+}
+
+.lcd-screen button {
+	font-size: 1rem;
+	color: #1a1a1a;
+	text-shadow: 0 0 3px rgba(26, 26, 26, 0.4);
+	font-family: 'Doto', monospace;
+	background: transparent;
+	border: none;
+	padding: 0;
 }
 
 .file-btns {
 	display: flex;
-	gap: 0.5rem;
+	gap: 1rem;
+	justify-content: space-between;
 }
 
-.control-bar {
-	padding: 0.8rem 1rem;
-}
-
-button {
-	padding: 0.8rem 0.5rem;
-	background: #555;
-	color: #fff;
-	border: none;
-	border-radius: 0.25rem;
-	font-weight: bold;
-	cursor: pointer;
-}
-
-#quantization {
-	background: #2b2b2b;
-	color: #fff;
-	border: 1px solid #555;
-	border-radius: 0.25rem;
-	padding: 0.8rem 0.5rem;
-	font-weight: bold;
-	cursor: pointer;
-	font-size: 0.85rem;
-}
-
-.bpm-controls {
-	display: flex;
-	align-items: center;
-	gap: 0.5rem;
-}
-
-#bpm-display {
-	font-weight: bold;
-	min-width: 2.5rem;
-	text-align: center;
-}
-
-/* INFO BAR (kit / beat / style) */
 .info-bar {
 	display: flex;
+	gap: 1rem;
 	justify-content: space-between;
-	align-items: center;
-	background: #1a1a1a;
-	padding: 0.5rem 1rem;
+}
+
+.info-bar button {
 	font-size: 1rem;
-	font-family: monospace;
-	color: #fff176;
-	border-bottom: 1px solid #2a2a2a;
-	flex-shrink: 0;
+}
+
+.info-bar input {
+	width: 5rem;
+	color: #1a1a1a;
+	text-shadow: 0 0 3px rgba(26, 26, 26, 0.4);
+	font-family: 'Doto', monospace;
+	font-size: 1rem;
+	text-align: center; 
+	background: transparent;
+	border: none;
+	padding: 0;
+	margin: 0;
 }
 
 .indicator {
 	font-size: 1rem;
 }
 
-/* STATUS BAR */
+.info-bar select {
+	font-size: 1rem;
+	color: #1a1a1a;
+	text-shadow: 0 0 3px rgba(26, 26, 26, 0.4);
+	font-family: 'Doto', monospace;
+	background: transparent;
+	border: none;
+	padding: 0;
+	margin: 0 -0.25rem;
+}
+
 .status-bar {
-	background: #111;
-	text-align: center;
-	padding: 1rem;
-	font-size: 0.75rem;
-	font-family: monospace;
-	color: #999;
-	border-bottom: 1px solid #222;
-	white-space: nowrap;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	flex-shrink: 0;
+	font-size: 1rem;
 }
 
 /* GRADE */

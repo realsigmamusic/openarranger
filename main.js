@@ -26,7 +26,7 @@ const lookahead = 25.0; // intervalo do setTimeout em ms
 // Data Layer =====================================================================================
 const kitBuffers = {}; // note → AudioBuffer
 let kitLoaded = false;
-let kitName = 'Sem kit';
+let kitName = 'Loade drumkit';
 
 let styleData = null; // style.json parseado
 let styleMidiEvents = null; // [{ tick, note, velocity }]
@@ -34,7 +34,7 @@ let stylePPQ = 480;	// lido do cabeçalho MIDI
 let beatsPerBar = 4; // lido do timeSignature[0] (numerador)
 let beatType = 4; // lido do timeSignature[1] (denominador)
 let styleLoaded = false;
-let styleName = 'Sem style';
+let styleName = 'Load style';
 let drumChannels = [8, 9]; // Padrão: canais 9 e 10 (0-based: 8 e 9)
 
 // Scheduler state ================================================================================
@@ -273,7 +273,7 @@ async function ensureJSZip() {
 
 async function loadKitFile(file) {
 	await ensureJSZip();
-	setStatus(`Carregando kit: ${file.name}…`);
+	setStatus(`Carregando kit: ${file.name}...`);
 	initAudio();
 
 	const zip = await JSZip.loadAsync(file);
@@ -307,7 +307,7 @@ async function loadKitFile(file) {
 
 	kitLoaded = true;
 	kitName = file.name.replace(/\.kit$/i, '');
-	setStatus(`${kitName} - ${loaded} samples`);
+	setStatus(`${kitName} - ${loaded} samples...`);
 	updateHeaderLabels();
 }
 
@@ -390,7 +390,7 @@ function parseMidiNote(val) {
 
 async function loadStyleFile(file) {
 	await ensureJSZip();
-	setStatus(`Carregando estilo: ${file.name}…`);
+	setStatus(`Carregando estilo: ${file.name}...`);
 
 	const zip = await JSZip.loadAsync(file);
 	const jsonEntry = zip.files['style.json'];
@@ -431,10 +431,10 @@ async function loadStyleFile(file) {
 	styleLoaded = true;
 	// Usa o nome do JSON ou faz o fallback
 	styleName = styleData.name || file.name.replace(/\.style$/i, '');
-	setStatus(`${styleName} - ${styleMidiEvents.length} events | PPQ ${stylePPQ} | ${beatsPerBar}/${beatType}`);
+	setStatus(`Events: ${styleMidiEvents.length} PPQ: ${stylePPQ}`);
 	updateHeaderLabels();
 
-	// showDebugInfo(); // Removido para não abrir o popup automaticamente
+	// showDebugInfo();
 }
 
 // Sample player ==================================================================================
@@ -519,8 +519,8 @@ function setStatus(msg) {
 }
 
 function updateHeaderLabels() {
-	document.getElementById('kit-label').innerText = kitLoaded ? `${kitName}` : 'Sem kit';
-	document.getElementById('style-label').innerText = styleLoaded ? `${styleName}` : 'Sem style';
+	document.getElementById('kit-label').innerText = kitLoaded ? `${kitName}` : 'Load drumkit';
+	document.getElementById('style-label').innerText = styleLoaded ? `${styleName} - ${beatsPerBar}/${beatType}` : 'Load style';
 }
 
 function updateButtonAvailability() {
@@ -643,12 +643,12 @@ async function restoreLastSession() {
 	const [kitFile, styleFile] = await Promise.all([dbLoad('kit'), dbLoad('style')]);
 	let restored = false;
 	if (kitFile) {
-		setStatus('Restaurando kit da última sessão…');
+		setStatus('Restaurando kit da última sessão...');
 		await loadKitFile(kitFile);
 		restored = true;
 	}
 	if (styleFile) {
-		setStatus('Restaurando style da última sessão…');
+		setStatus('Restaurando style da última sessão...');
 		await loadStyleFile(styleFile);
 		restored = true;
 	}

@@ -25,35 +25,39 @@
 </head>
 <body>
 
-	<header class="control-bar">
-		<div class="file-btns">
-			<button id="btn-load-kit">Kit</button>
-			<button id="btn-load-style">Style</button>
-			<button id="btn-debug">Info</button>
+	<header>
+		<div class="lcd-screen">
+			<div class="lcd-content">
+				<h1 class="lcd-label">OpenArranger<button id="btn-debug">Info</button></h1>
+				
+				<div class="file-btns">
+					<button id="btn-load-style">
+						<span id="style-label">Style</span>
+					</button>
+					<button id="btn-load-kit">
+						<span id="kit-label">kit</span>
+					</button>
+				</div>
+				<div id="status-bar" class="status-bar">Inicializando…</div>
+				<div class="info-bar">
+					<div class="bpm-controls">
+						<button id="bpm-minus">-</button>
+						<input type="number" id="bpm-display" value="120" min="40" max="250">
+						<button id="bpm-plus">+</button>
+					</div>
+					<span id="beat-indicator" class="indicator">---</span>
+					<select class="lcd-value" id="quantization" title="Quantização">
+						<option value="measure">Measure</option>
+						<option value="half" selected>Half measure</option>
+						<option value="beat">Beat</option>
+						<option value="immediate">Imediate</option>
+					</select>
+				</div>
+				<input type="file" id="input-kit"   accept=".kit"   style="display:none">
+				<input type="file" id="input-style" accept=".style" style="display:none">
+			</div>
 		</div>
-		<select id="quantization" title="Quantização">
-			<option value="measure">Measure</option>
-			<option value="half" selected>Half measure</option>
-			<option value="beat">Beat</option>
-			<option value="immediate">Imediate</option>
-		</select>
-		<div class="bpm-controls">
-			<button id="bpm-minus">-</button>
-			<input type="number" id="bpm-display" value="120" min="40" max="250" style="width: 30px; text-align: center; background: transparent; color: white; border: none; font-weight: bold; outline: none; -moz-appearance: textfield;">
-			<button id="bpm-plus">+</button>
-		</div> 
 	</header>
-
-	<input type="file" id="input-kit"   accept=".kit"   style="display:none">
-	<input type="file" id="input-style" accept=".style" style="display:none">
-
-	<div class="info-bar">
-		<span id="kit-label">kit</span>
-		<span id="beat-indicator" class="indicator">---</span>
-		<span id="style-label">Style</span>
-	</div>
-
-	<div id="status-bar" class="status-bar">Inicializando…</div>
 
 	<div id="debug-modal" class="debug-modal" style="display:none;">
 		<div class="debug-content">

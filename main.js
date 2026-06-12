@@ -156,18 +156,15 @@ function parseMidi(buffer) {
 	return { format, ppq, tracks };
 }
 
-function extractDrumEvents(midi) {
+function extractDrumEvents(midi, channels) {
 	let events = [];
-	
 	for (const track of midi.tracks) {
 		for (const ev of track) {
-			// Filtra dinamicamente usando os canais configurados
-			if (drumChannels.includes(ev.channel)) {
+			if (channels.includes(ev.channel)) {
 				events.push(ev);
 			}
 		}
 	}
-
 	return events.sort((a, b) => a.tick - b.tick);
 }
 
@@ -512,7 +509,7 @@ async function loadStyleFile(file) {
 	const ppq = midi.ppq;
 	const bpb = sd.timeSignature?.[0] ?? 4;
 	const bt = sd.timeSignature?.[1] ?? 4;
-	const events = extractDrumEvents(midi);
+	const events = extractDrumEvents(midi, dc);
 	const sName = sd.name || file.name.replace(/\.style$/i, '');
 
 	// Verifica se já existe um style com mesmo nome e substitui

@@ -92,6 +92,12 @@ let barStartTime = 0; // audioCtx.currentTime do início do compasso atual
 let barTickOffset = 0; // tick atual dentro do compasso
 let eventIndex = 0; // próximo evento a agendar em barEvents
 
+// Flag: usuário clicou na seção ativa → repetir do compasso 1 na próxima transição
+let _repeatCurrent = false;
+
+// rAF loop para atualizar contadores nos botões
+let _counterRafId = null;
+
 // MIDI Parser (zero-dependency) ==================================================================
 function parseMidi(buffer) {
 	const data = new DataView(buffer);
@@ -258,8 +264,21 @@ function scheduler() {
 		const prevBeat = Math.floor((barTickOffset === 0 ? 0 : barTickOffset - 1) / ticksPerBeat);
 		if (barTickOffset === 0 || beat !== prevBeat) {
 			const displayBeat = beat + 1;
+			const snapBar = currentBarIndexInSection + 1;
+			const snapTotal = sectionBarCount(currentSection);
 			requestAnimationFrame(() => {
 				document.getElementById('beat-indicator').innerText = `${displayBeat}`;
+				// Atualiza só o botão ativo, com valores capturados no momento exato
+				const activeBtn = document.querySelector(`.grid-container .btn[data-section="${currentSection}"]`);
+				if (activeBtn) {
+					let counter = activeBtn.querySelector('.bar-counter');
+					if (!counter) {
+						counter = document.createElement('span');
+						counter.className = 'bar-counter';
+						activeBtn.appendChild(counter);
+					}
+					counter.textContent = `${snapTotal}|${snapBar}:${displayBeat}`;
+				}
 			});
 		}
 
@@ -290,7 +309,11 @@ function scheduler() {
 			const cutTick = isMeasureEnd ? barLengthTicks : barTickOffset;
 			const nextBarStart = barStartTime + ticksToSeconds(cutTick);
 
-			if (userQueued) {
+			if (_repeatCurrent) {
+				// Repetição forçada: reinicia a seção atual do compasso 0
+				_repeatCurrent = false;
+				startBar(currentSection, 0, nextBarStart);
+			} else if (userQueued) {
 				if (userQueued === 'STOP') { scheduleStop(nextBarStart); return; }
 				const entryTick = (isMeasureEnd || activeQuant === 'measure') ? 0 : cutTick;
 				startBar(userQueued, 0, nextBarStart, entryTick);
@@ -542,9 +565,11 @@ function togglePlay() {
 		document.getElementById('btn-play').innerText = 'Stop';
 		document.getElementById('btn-play').classList.add('playing');
 		scheduler();
+		startCounterLoop();
 	} else {
 		isPlaying = false;
 		clearTimeout(timerId);
+		stopCounterLoop();
 		document.getElementById('btn-play').innerText = 'Start';
 		document.getElementById('btn-play').classList.remove('playing');
 		document.getElementById('beat-indicator').innerText = '-';
@@ -556,6 +581,7 @@ function scheduleStop(atTime) {
 	setTimeout(() => {
 		isPlaying = false;
 		clearTimeout(timerId);
+		stopCounterLoop();
 		currentSection = 'Main A';
 		nextSection = 'Main A';
 		document.getElementById('btn-play').innerText = 'Start';
@@ -621,6 +647,64 @@ function updateUI() {
 		const queuedBtn = document.querySelector(`.grid-container .btn[data-section="${nextSection}"]`);
 		if (queuedBtn) queuedBtn.classList.add('queued');
 	}
+
+	updateSectionCounters();
+}
+
+// Contador de compasso nos botões ================================================================
+function updateSectionCounters() {
+	document.querySelectorAll('.grid-container .btn[data-section]').forEach(btn => {
+		const sec = btn.dataset.section;
+
+		let counter = btn.querySelector('.bar-counter');
+		if (!counter) {
+			counter = document.createElement('span');
+			counter.className = 'bar-counter';
+			btn.appendChild(counter);
+		}
+
+		if (!styleLoaded || !styleData?.sections?.[sec]) {
+			counter.textContent = '';
+			return;
+		}
+
+		const total = sectionBarCount(sec);
+		if (sec === currentSection && isPlaying) {
+			const ticksPerBeat = stylePPQ * (4 / beatType);
+			const beat = Math.floor(barTickOffset / ticksPerBeat) + 1;
+			counter.textContent = `${total}|${currentBarIndexInSection + 1}:${beat}`;
+		} else {
+			counter.textContent = `${total}`;
+		}
+	});
+}
+
+function startCounterLoop() {
+	if (_counterRafId) return;
+	const loop = () => {
+		if (!isPlaying) { _counterRafId = null; return; }
+		// Só botões inativos — o ativo é gerenciado pelo scheduler
+		document.querySelectorAll('.grid-container .btn[data-section]').forEach(btn => {
+			if (btn.dataset.section === currentSection) return;
+			const sec = btn.dataset.section;
+			let counter = btn.querySelector('.bar-counter');
+			if (!counter) {
+				counter = document.createElement('span');
+				counter.className = 'bar-counter';
+				btn.appendChild(counter);
+			}
+			counter.textContent = styleLoaded && styleData?.sections?.[sec]
+				? `${sectionBarCount(sec)}`
+				: '';
+		});
+		_counterRafId = requestAnimationFrame(loop);
+	};
+	_counterRafId = requestAnimationFrame(loop);
+}
+
+function stopCounterLoop() {
+	if (_counterRafId) { cancelAnimationFrame(_counterRafId); _counterRafId = null; }
+	updateSectionCounters();
 }
 
 // Tap Tempo ======================================================================================
@@ -748,13 +832,28 @@ document.getElementById('input-style').addEventListener('change', async e => {
 
 document.querySelectorAll('.grid-container .btn').forEach(btn => {
 	btn.addEventListener('click', e => {
-		const clicked = e.target.dataset.section;
-		nextSection = clicked;
+		const clicked = e.target.closest('[data-section]')?.dataset.section;
+		if (!clicked) return;
+
 		if (!isPlaying) {
 			currentSection = clicked;
+			nextSection = clicked;
+			_repeatCurrent = false;
 			if (clicked.startsWith('Main ')) returnSection = clicked;
+			updateUI();
+			return;
 		}
-		updateUI();
+
+		if (clicked === currentSection) {
+			// Clicou na seção ativa → agenda repetição do início
+			_repeatCurrent = true;
+			// Feedback visual: pisca o botão como queued
+			btn.classList.add('queued');
+		} else {
+			_repeatCurrent = false;
+			nextSection = clicked;
+			updateUI();
+		}
 	});
 });
 

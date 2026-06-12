@@ -277,17 +277,32 @@ h1 {
 	font-size: 0.9rem;
 	transition: transform 0.1s, box-shadow 0.1s;
 	cursor: pointer;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 2rem;
 }
-
+ 
+.bar-counter {
+	font-size: 0.75rem;
+	font-weight: normal;
+	opacity: 0.75;
+	font-family: monospace;
+	letter-spacing: 0.02em;
+	line-height: 1;
+}
+ 
 .btn:active {
 	transform: translateY(4px);
 	box-shadow: 0 0 #000;
 }
-
+ 
 .btn.active {
 	border: 3px solid #ffffff;
 	box-shadow: 0 0 15px #ffffff;
 }
+
 
 /* FILA DE ESPERA */
 @keyframes pulse-queued {

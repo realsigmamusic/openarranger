@@ -2,6 +2,8 @@
 
 OpenArranger is an open-source, web-based, offline-first accompaniment tool designed for gigging solo musicians. It emulates the behavior of traditional hardware arranger keyboards, allowing real-time control over non-linear drum patterns (Mains, Fills, Intros, Endings, and Breaks) with zero audio latency.
 
+<img src="screenshot.jpg" width="45%">
+
 ## Key Features
 
 - **Performance-Driven UI:** Large, ergonomic vertical grid designed specifically for mobile devices and live stage environments.

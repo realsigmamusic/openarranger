@@ -14,7 +14,7 @@ OpenArranger is an open-source, web-based, offline-first accompaniment tool desi
 
 ## Sound Kit Specification (.kit)
 
-A Sound Kit is a compressed `.zip` archive renamed to `.kit`. It must contain a simplified `.sfz` definition file at the root level alongside a `Samples/` directory containing the audio waveforms (WAV, MP3, or OGG).
+A Sound Kit is a compressed `.zip` archive renamed to `.kit`. It must contain a simplified `.sfz` definition file at the root level alongside a `Samples/` directory containing the audio waveforms (WAV).
 
 ### Supported SFZ Opcodes
 

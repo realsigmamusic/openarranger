@@ -41,6 +41,7 @@ let beatType = 4;
 let styleLoaded = false;
 let styleName = 'Load style';
 let drumChannels = [8, 9];
+let beatUnitFactor = 1; // fator de conversão: quantas semínimas vale 1 beat
 
 function applyStyle(index) {
 	if (index < 0 || index >= styles.length) return;
@@ -51,6 +52,7 @@ function applyStyle(index) {
 	stylePPQ = s.stylePPQ;
 	beatsPerBar = s.beatsPerBar;
 	beatType = s.beatType;
+	beatUnitFactor = s.beatUnitFactor ?? 1;
 	drumChannels = s.drumChannels;
 	styleLoaded = true;
 	styleName = s.name;
@@ -173,7 +175,7 @@ function barToTick(bar) {
 	const ticksPerBeat = stylePPQ * (4 / beatType);
 	return (bar - 1) * ticksPerBeat * beatsPerBar;
 }
-function ticksToSeconds(t) { return (t / stylePPQ) * (60 / bpm); }
+function ticksToSeconds(t) { return (t / stylePPQ) * (60 / bpm) / beatUnitFactor; }
 
 // Eventos de uma seção ===========================================================================
 function getSectionRange(sectionName) {
@@ -484,6 +486,17 @@ function parseMidiNote(val) {
 }
 
 
+// Figura de tempo para fator em semínimas ========================================================
+function parseBeatUnit(val) {
+	const s = String(val ?? 4).trim();
+	const dotted = s.endsWith('.');
+	const base = parseInt(s, 10);
+	if (!base || base <= 0) return 1;
+	let factor = 4 / base; // semínimas por beat
+	if (dotted) factor *= 1.5; // pontuada = 1.5x
+	return factor;
+}
+
 async function loadStyleFile(file) {
 	await ensureJSZip();
 	setStatus(`Carregando estilo: ${file.name}...`);
@@ -509,14 +522,15 @@ async function loadStyleFile(file) {
 	const ppq = midi.ppq;
 	const bpb = sd.timeSignature?.[0] ?? 4;
 	const bt = sd.timeSignature?.[1] ?? 4;
+	const buf = parseBeatUnit(sd.beatUnit); // beatUnitFactor: 1=semínima (default), 1.5=semínima pontuada, 0.5=colcheia...
 	const events = extractDrumEvents(midi, dc);
 	const sName = sd.name || file.name.replace(/\.style$/i, '');
 
 	// Verifica se já existe um style com mesmo nome e substitui
 	const existing = styles.findIndex(s => s.name === sName);
 	const entry = { name: sName, styleData: sd, styleMidiEvents: events,
-		stylePPQ: ppq, beatsPerBar: bpb, beatType: bt, drumChannels: dc,
-		bpm: sd.bpm || bpm };
+		stylePPQ: ppq, beatsPerBar: bpb, beatType: bt, beatUnitFactor: buf,
+		drumChannels: dc, bpm: sd.bpm || bpm };
 
 	if (existing >= 0) {
 		styles[existing] = entry;

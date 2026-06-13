@@ -61,7 +61,7 @@ function applyStyle(index) {
 	document.getElementById('bpm-display').value = bpm;
 	updateButtonAvailability();
 	updateHeaderLabels();
-	setStatus(`Events: ${styleMidiEvents.length} PPQ ${stylePPQ}`);
+	setStatus(`Events ${styleMidiEvents.length} - PPQ ${stylePPQ} - Time ${beatsPerBar}/${beatType}`);
 }
 
 function updateStyleSelect() {

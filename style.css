@@ -153,6 +153,7 @@ h1 {
 .bpm-block {
 	display: flex;
 	flex-direction: column;
+	align-items: center;
 }
 
 .bpm-controls {
@@ -189,6 +190,7 @@ h1 {
 .tap-tempo-block {
 	display: flex;
 	flex-direction: column;
+	align-items: center;
 }
 
 .indicator {
@@ -212,7 +214,8 @@ h1 {
 	width: 4rem;
 	height: 4px;
 	border-radius: 2px;
-	background: #1a1a1a;
+	background: #2c2c2c;
+	box-shadow: 0 0 3px rgba(26, 26, 26, 0.4);
 	outline: none;
 	cursor: pointer;
 	margin: 0.5rem 0;
@@ -224,7 +227,8 @@ h1 {
 	width: 14px;
 	height: 14px;
 	border-radius: 50%;
-	background: #1a1a1a;
+	background: #2c2c2c;
+	box-shadow: 0 0 3px rgba(26, 26, 26, 0.4);
 	cursor: pointer;
 }
 

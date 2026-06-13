@@ -550,7 +550,8 @@ function triggerSample(note, velocity, time) {
 	const src = audioCtx.createBufferSource();
 	const gain = audioCtx.createGain();
 	src.buffer = kitBuffers[note];
-	gain.gain.setValueAtTime(velocity / 127, time);
+	const volume = Math.pow(velocity / 127, 2);
+	gain.gain.setValueAtTime(volume, time);
 	src.connect(gain);
 	gain.connect(masterGain);
 	src.start(time);

@@ -2,7 +2,7 @@
 
 OpenArranger is an open-source, web-based, offline-first accompaniment tool designed for gigging solo musicians. It emulates the behavior of traditional hardware arranger keyboards, allowing real-time control over non-linear drum patterns (Mains, Fills, Intros, Endings, and Breaks) with zero audio latency.
 
-<img src="screenshot.jpg" width="45%">
+<img src="screenshot.jpg" width="80%">
 
 ## Key Features
 
@@ -43,7 +43,6 @@ The custom parser supports a subset of the standard SFZ specification:
 <region> key=42 sample=Hihat_042.wav group=1 off_by=1
 <region> key=44 sample=Hihat_044.wav group=1 off_by=1
 <region> key=46 sample=Hihat_046.wav group=1 off_by=1
-
 ```
 
 ## Style Specification (.style)
@@ -70,7 +69,12 @@ The core engine maps performance sections based on full bars, decoupling the mus
     "Break": { "startBar": 14, "endBar": 15 }
   }
 }
+```
 
+**Optional:** For rhythms in compound time signatures, it is necessary to explicitly indicate the time signature (`8` for eighth note, `"4."` for dotted quarter note).
+
+```json
+"beatUnit": "4."
 ```
 
 ## License & Credits

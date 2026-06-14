@@ -58,6 +58,9 @@ function applyStyle(index) {
 	styleName = s.name;
 	barLengthTicks = stylePPQ * (4 / beatType) * beatsPerBar;
 	bpm = s.bpm;
+	currentSection = 'Intro A';
+	nextSection = 'Main A';
+	updateUI();
 	document.getElementById('bpm-display').value = bpm;
 	updateButtonAvailability();
 	updateHeaderLabels();
@@ -651,13 +654,13 @@ function updateUI() {
 		b.classList.remove('active', 'queued');
 	});
 	const activeBtn = document.querySelector(`.grid-container .btn[data-section="${currentSection}"]`);
-if (activeBtn) activeBtn.classList.add('active');
+	if (activeBtn) activeBtn.classList.add('active');
 
-const autoDest = autoRoute(currentSection);
-if (autoDest && autoDest !== currentSection && autoDest !== 'STOP') {
-    const autoBtn = document.querySelector(`.grid-container .btn[data-section="${autoDest}"]`);
-    if (autoBtn && !autoBtn.classList.contains('queued')) autoBtn.classList.add('queued');
-}
+	const autoDest = autoRoute(currentSection);
+	if (autoDest && autoDest !== currentSection && autoDest !== 'STOP') {
+	    const autoBtn = document.querySelector(`.grid-container .btn[data-section="${autoDest}"]`);
+	    if (autoBtn && !autoBtn.classList.contains('queued')) autoBtn.classList.add('queued');
+	}
 
 	if (nextSection !== currentSection && nextSection !== 'STOP') {
 		const queuedBtn = document.querySelector(`.grid-container .btn[data-section="${nextSection}"]`);

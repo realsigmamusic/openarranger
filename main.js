@@ -15,7 +15,7 @@ let bpm = 120;
 let timerId = null;
 
 // Cérebro Musical ================================================================================
-let currentSection = 'Main A';
+let currentSection = 'Intro A';
 let nextSection = 'Main A'; // o que vai tocar no próximo compasso
 let quantization = 'half'; // 'measure' | 'half' | 'beat' | 'immediate'
 let returnSection = 'Main A'; // memória do Break
@@ -594,8 +594,6 @@ function scheduleStop(atTime) {
 		isPlaying = false;
 		clearTimeout(timerId);
 		stopCounterLoop();
-		currentSection = 'Main A';
-		nextSection = 'Main A';
 		document.getElementById('btn-play').innerText = 'Start';
 		document.getElementById('btn-play').classList.remove('playing');
 		document.getElementById('beat-indicator').innerText = '-';
@@ -653,7 +651,13 @@ function updateUI() {
 		b.classList.remove('active', 'queued');
 	});
 	const activeBtn = document.querySelector(`.grid-container .btn[data-section="${currentSection}"]`);
-	if (activeBtn) activeBtn.classList.add('active');
+if (activeBtn) activeBtn.classList.add('active');
+
+const autoDest = autoRoute(currentSection);
+if (autoDest && autoDest !== currentSection && autoDest !== 'STOP') {
+    const autoBtn = document.querySelector(`.grid-container .btn[data-section="${autoDest}"]`);
+    if (autoBtn && !autoBtn.classList.contains('queued')) autoBtn.classList.add('queued');
+}
 
 	if (nextSection !== currentSection && nextSection !== 'STOP') {
 		const queuedBtn = document.querySelector(`.grid-container .btn[data-section="${nextSection}"]`);

@@ -25,8 +25,11 @@ const lookahead = 25.0; // intervalo do setTimeout em ms
 
 // Data Layer =====================================================================================
 const kitBuffers = {}; // note → AudioBuffer
+let kits = []; // array de { name, sfzNames, zip }
+let activeKitIndex = -1;
+let activeSfzIndex = 0;
 let kitLoaded = false;
-let kitName = 'Loade drumkit';
+let kitName = 'Load drumkit';
 
 // Styles: array de { name, styleData, styleMidiEvents, stylePPQ, beatsPerBar, beatType, drumChannels }
 let styles = [];
@@ -378,38 +381,74 @@ async function loadKitFile(file) {
 	initAudio();
 
 	const zip = await JSZip.loadAsync(file);
-	const sfzEntry = Object.values(zip.files).find(f => f.name.endsWith('.sfz'));
-	if (!sfzEntry) { setStatus('Kit inválido: nenhum .sfz encontrado'); return; }
+	const sfzNames = Object.keys(zip.files)
+		.filter(f => f.endsWith('.sfz'))
+		.sort();
+
+	if (sfzNames.length === 0) { setStatus('Kit inválido: nenhum .sfz encontrado'); return; }
+
+	const name = file.name.replace(/\.kit$/i, '');
+	kits.push({ name, sfzNames, zip });
+	updateKitSelect();
+}
+
+async function applyKit(kitIndex, sfzIndex = 0) {
+	if (kitIndex < 0 || kitIndex >= kits.length) return;
+	activeKitIndex = kitIndex;
+	activeSfzIndex = sfzIndex;
+	const kit = kits[kitIndex];
+	const sfzEntry = kit.zip.files[kit.sfzNames[sfzIndex]];
+	if (!sfzEntry) return;
+
+	// Limpa buffers anteriores
+	Object.keys(kitBuffers).forEach(k => delete kitBuffers[k]);
 
 	const mapping = parseSFZ(await sfzEntry.async('string'));
 	let loaded = 0;
 
 	for (const [note, path] of Object.entries(mapping)) {
-		// Pega só o nome do arquivo (ex: "Hihat 046.wav") e converte pra minúsculo
 		const targetName = path.replace(/\\/g, '/').split('/').pop().toLowerCase();
-		
-		// Vasculha todos os arquivos do ZIP ignorando pastas e letras maiúsculas
-		const entryKey = Object.keys(zip.files).find(k => k.toLowerCase().endsWith(targetName));
-		
-		const entry = zip.files[entryKey];
-		
-		if (!entry) { 
-			console.warn('Sample não encontrado no ZIP:', path); 
-			continue; 
-		}
-		
+		const entryKey = Object.keys(kit.zip.files).find(k => k.toLowerCase().endsWith(targetName));
+		const entry = kit.zip.files[entryKey];
+		if (!entry) { console.warn('Sample não encontrado:', path); continue; }
 		try {
 			kitBuffers[note] = await audioCtx.decodeAudioData(await entry.async('arraybuffer'));
 			loaded++;
-		} catch (e) { 
-			console.warn('Erro ao decodificar o áudio:', path, e); 
-		}
+		} catch (e) { console.warn('Erro ao decodificar:', path, e); }
 	}
 
 	kitLoaded = true;
-	kitName = file.name.replace(/\.kit$/i, '');
-	setStatus(`${kitName} - ${loaded} samples...`);
-	updateHeaderLabels();
+	kitName = `${kit.sfzNames[sfzIndex].replace(/\.sfz$/i, '').split('/').pop()}`;
+	setStatus(`${kitName} - ${loaded} samples`);
+}
+
+function updateKitSelect() {
+	const sel = document.getElementById('kit-select');
+	sel.innerHTML = '';
+
+	if (kits.length === 0) {
+		const opt = document.createElement('option');
+		opt.value = ''; opt.textContent = 'Load drumkit';
+		sel.appendChild(opt);
+		return;
+	}
+
+	kits.forEach((kit, ki) => {
+		kit.sfzNames.forEach((sfz, si) => {
+			const opt = document.createElement('option');
+			opt.value = `${ki}:${si}`;
+			opt.textContent = kit.sfzNames.length > 1
+				? `${sfz.replace(/\.sfz$/i, '').split('/').pop()}`
+				: kit.name;
+			sel.appendChild(opt);
+		});
+	});
+
+	// Seleciona o último carregado
+	const lastVal = `${kits.length - 1}:0`;
+	sel.value = lastVal;
+	const [ki, si] = lastVal.split(':').map(Number);
+	applyKit(ki, si);
 }
 
 function parseSFZ(text) {
@@ -587,7 +626,7 @@ function togglePlay() {
 		stopCounterLoop();
 		document.getElementById('btn-play').innerText = 'Start';
 		document.getElementById('btn-play').classList.remove('playing');
-		document.getElementById('beat-indicator').innerText = '-';
+		document.getElementById('beat-indicator').innerText = '*';
 	}
 }
 
@@ -599,7 +638,7 @@ function scheduleStop(atTime) {
 		stopCounterLoop();
 		document.getElementById('btn-play').innerText = 'Start';
 		document.getElementById('btn-play').classList.remove('playing');
-		document.getElementById('beat-indicator').innerText = '-';
+		document.getElementById('beat-indicator').innerText = '*';
 		updateUI();
 	}, delay);
 }
@@ -633,11 +672,6 @@ function showDebugInfo() {
 // UI =============================================================================================
 function setStatus(msg) {
 	document.getElementById('status-bar').innerText = msg;
-}
-
-function updateHeaderLabels() {
-	document.getElementById('kit-label').innerText = kitLoaded ? `${kitName}` : 'Load drumkit';
-	// O style agora é gerenciado pelo select via updateStyleSelect()
 }
 
 function updateButtonAvailability() {
@@ -819,6 +853,10 @@ document.getElementById('style-select').addEventListener('change', async e => {
 		await dbSave('style:active', idx);
 	}
 });
+document.getElementById('kit-select').addEventListener('change', async e => {
+	const [ki, si] = e.target.value.split(':').map(Number);
+	if (!isNaN(ki)) await applyKit(ki, si);
+});
 document.getElementById('btn-debug').addEventListener('click', showDebugInfo);
 document.getElementById('close-debug').addEventListener('click', () =>
 document.getElementById('debug-modal').style.display = 'none');
@@ -967,5 +1005,4 @@ async function restoreLastSession() {
 
 // Inicialização ==================================================================================
 updateUI();
-updateHeaderLabels();
 restoreLastSession();

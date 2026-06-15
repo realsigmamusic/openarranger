@@ -35,11 +35,12 @@
 							<select id="style-select" title="Styles carregados"></select>
 							<button id="btn-add-style" class="load-btn" title="Adicionar style">Style</button>
 						</div>
-						<button id="btn-load-kit" class="load-btn" title="Carregar drumkit">
-							<span id="kit-label">Kit</span>
-						</button>
+						<div class="style-selector">
+							<select id="kit-select" title="SFZs do kit"></select>
+							<button id="btn-load-kit" class="load-btn" title="Carregar drumkit">Kit</button>
+						</div>
+						<button id="btn-debug" class="info-btn" title="Info">i</button>
 					</div>
-					<button id="btn-debug" class="info-btn" title="Info">ℹ</button>
 				</div>
 				<div id="status-bar" class="status-bar">Inicializando...</div>
 				<div class="transport-zone">
@@ -53,7 +54,7 @@
 					</div>
 					<div class="tap-tempo-block">
 						<span class="transport-label">Tap</span>
-						<span id="beat-indicator" class="indicator" title="Toque para tap tempo">-</span>
+						<span id="beat-indicator" class="indicator" title="Toque para tap tempo">*</span>
 					</div>
 					<div class="volume-block">
 						<span class="transport-label">Volume</span>

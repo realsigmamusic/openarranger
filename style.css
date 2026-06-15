@@ -72,7 +72,6 @@ h1 {
 	gap: 0.4rem;
 	flex: 1;
 	min-width: 0;
-	margin-left: -0.3rem;
 }
 
 .style-selector select {

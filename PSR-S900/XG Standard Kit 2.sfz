@@ -1,0 +1,76 @@
+<control> default_path=Samples/
+
+<global> loop_mode=one_shot
+
+<region> key=13 sample=Surdo Mute.wav group=3 off_by=3
+<region> key=14 sample=Surdo Open.wav group=3 off_by=3
+<region> key=15 sample=Hi Q.wav
+<region> key=16 sample=Whip Slap.wav
+<region> key=17 sample=Scratch H.wav group=4 off_by=4 
+<region> key=18 sample=Scratch L.wav group=4 off_by=4
+<region> key=19 sample=Finger Snap.wav
+<region> key=20 sample=Click Noise.wav
+<region> key=21 sample=Metronome Click.wav
+<region> key=22 sample=Metronome Bell.wav
+<region> key=23 sample=Seq Click L.wav
+<region> key=24 sample=Seq Click H.wav
+<region> key=25 sample=Brush Tap.wav
+<region> key=26 sample=Brush Swirl.wav loop_mode=loop_continuous loop_start=61788 loop_end=161341
+<region> key=27 sample=Brush Slap.wav
+<region> key=28 sample=Brush Tap Swirl.wav loop_mode=loop_continuous loop_start=86985 loop_end=186538
+<region> key=29 sample=Snare Roll.wav loop_mode=loop_continuous loop_start=55026 loop_end=101881
+<region> key=30 sample=Castanet.wav
+<region> key=31 sample=Snare Soft 2.wav
+<region> key=32 sample=Sticks.wav
+<region> key=33 sample=Kick Soft.wav
+<region> key=34 sample=Open Rim Shot H Short.wav
+<region> key=35 sample=Kick Tight.wav
+<region> key=36 sample=Kick Short.wav
+<region> key=37 sample=Side Stick Light.wav
+<region> key=38 sample=Snare Short.wav
+<region> key=39 sample=Hand Clap.wav
+<region> key=40 sample=Snare Tight H.wav
+<region> key=41 sample=Floor Tom L.wav
+<region> key=42 sample=Hi-Hat Closed.wav group=1 off_by=1
+<region> key=43 sample=Floor Tom H.wav
+<region> key=44 sample=Hi-Hat Pedal.wav group=1 off_by=1
+<region> key=45 sample=Low Tom.wav
+<region> key=46 sample=Hi-Hat Open.wav group=1 off_by=1
+<region> key=47 sample=Mid Tom L.wav
+<region> key=48 sample=Mid Tom H.wav
+<region> key=49 sample=Crash Cymbal 1.wav
+<region> key=50 sample=High Tom.wav
+<region> key=51 sample=Ride Cymbal 1.wav
+<region> key=52 sample=Chinese Cymbal.wav
+<region> key=53 sample=Ride Cymbal Cup.wav
+<region> key=54 sample=Tambourine.wav
+<region> key=55 sample=Splash Cymbal.wav
+<region> key=56 sample=Cowbell.wav
+<region> key=57 sample=Crash Cymbal 2.wav
+<region> key=58 sample=Vibraslap.wav
+<region> key=59 sample=Ride Cymbal 2.wav
+<region> key=60 sample=Bongo H.wav
+<region> key=61 sample=Bongo L.wav
+<region> key=62 sample=Conga H Mute.wav
+<region> key=63 sample=Conga H Open.wav
+<region> key=64 sample=Conga L.wav
+<region> key=65 sample=Timbale H.wav
+<region> key=66 sample=Timbale L.wav
+<region> key=67 sample=Agogo H.wav
+<region> key=68 sample=Agogo L.wav
+<region> key=69 sample=Cabasa.wav
+<region> key=70 sample=Maracas.wav
+<region> key=71 sample=Samba Whistle H.wav loop_mode=loop_continuous loop_start=17680 loop_end=29446
+<region> key=72 sample=Samba Whistle L.wav loop_mode=loop_continuous loop_start=12215 loop_end=27323
+<region> key=73 sample=Guiro Short.wav
+<region> key=74 sample=Guiro Long.wav loop_mode=loop_continuous
+<region> key=75 sample=Claves.wav
+<region> key=76 sample=Wood Block H.wav
+<region> key=77 sample=Wood Block L.wav
+<region> key=78 sample=Cuica Mute.wav
+<region> key=79 sample=Cuica Open.wav
+<region> key=80 sample=Triangle Mute.wav group=2 off_by=2
+<region> key=81 sample=Triangle Open.wav group=2 off_by=2
+<region> key=82 sample=Shaker.wav
+<region> key=83 sample=Jingle Bells.wav
+<region> key=84 sample=Bell Tree.wav

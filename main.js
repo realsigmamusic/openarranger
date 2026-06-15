@@ -70,7 +70,7 @@ function applyStyle(index) {
 	setStatus(`Events ${styleMidiEvents.length} - PPQ ${stylePPQ} - Time ${beatsPerBar}/${beatType}`);
 }
 
-function updateStyleSelect() {
+function updateStyleSelect(autoApply = true) {
 	const sel = document.getElementById('style-select');
 	const prev = sel.value;
 	sel.innerHTML = '';
@@ -90,7 +90,7 @@ function updateStyleSelect() {
 	// Mantém seleção ou vai pro último
 	const newIdx = styles.findIndex((_, i) => String(i) === prev);
 	sel.value = newIdx >= 0 ? newIdx : styles.length - 1;
-	applyStyle(parseInt(sel.value));
+	if (autoApply) applyStyle(parseInt(sel.value));
 }
 
 // Scheduler state ================================================================================
@@ -580,7 +580,7 @@ async function loadStyleFile(file) {
 		styles.push(entry);
 	}
 
-	updateStyleSelect(); // aplica e atualiza UI
+	updateStyleSelect(false); // atualiza UI sem aplicar style
 }
 
 // Sample player ==================================================================================
@@ -846,6 +846,23 @@ document.getElementById('btn-load-kit').addEventListener('click', () =>
 document.getElementById('input-kit').click());
 document.getElementById('btn-add-style').addEventListener('click', () =>
 document.getElementById('input-style').click());
+document.getElementById('input-style').addEventListener('change', async e => {
+	for (const file of e.target.files) {
+		await loadStyleFile(file);
+	}
+	const manifest = [];
+	for (let i = 0; i < styles.length; i++) {
+		manifest.push(`style:${i}`);
+	}
+	const offset = styles.length - e.target.files.length;
+	for (let j = 0; j < e.target.files.length; j++) {
+		await dbSave(`style:${offset + j}`, e.target.files[j]);
+	}
+	await dbSave('style:manifest', manifest);
+	await dbSave('style:active', activeStyleIndex);
+	e.target.value = '';
+	updateStyleSelect(true);
+});
 document.getElementById('style-select').addEventListener('change', async e => {
 	const idx = parseInt(e.target.value);
 	if (!isNaN(idx)) {

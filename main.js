@@ -47,6 +47,9 @@ let drumChannels = [8, 9];
 let beatUnitFactor = 1; // fator de conversão: quantas semínimas vale 1 beat
 
 function applyStyle(index) {
+	if (isPlaying) {
+		togglePlay(); // Para a música se estiver tocando
+	}
 	if (index < 0 || index >= styles.length) return;
 	activeStyleIndex = index;
 	const s = styles[index];
@@ -213,8 +216,9 @@ function sectionBarCount(sectionName) {
 
 // Roteamento =====================================================================================
 function autoRoute(section) {
-	// Extrai a letra da variação: "Fill In A" → "A", "Intro B" → "B"
-	const letter = section.split(' ').pop(); // último token é sempre a letra
+	// Extrai a última letra isolada (ex: "A", "B"). Se não achar, assume "A"
+	const match = section.match(/ ([A-Za-z])$/);
+	const letter = match ? match[1] : 'A'; 
 
 	if (section.startsWith('Fill In ') || section.startsWith('Intro '))
 		return 'Main ' + letter;
@@ -293,7 +297,7 @@ function scheduler() {
 		const halfTicks = Math.floor(barLengthTicks / 2);
 		const nextTick = barTickOffset + 1;
 		const isHalfEnd = !isMeasureEnd && (nextTick % halfTicks === 0) && nextTick > 0;
-		const isBeatEnd = !isMeasureEnd && !isHalfEnd && (nextTick % stylePPQ === 0) && nextTick > 0;
+		const isBeatEnd = !isMeasureEnd && !isHalfEnd && (nextTick % ticksPerBeat === 0) && nextTick > 0;
 		const isImmediate = !isMeasureEnd && !isHalfEnd && !isBeatEnd;
 
 		// Quantização só se aplica a Fills - todo o resto usa 'measure'
@@ -388,8 +392,21 @@ async function loadKitFile(file) {
 	if (sfzNames.length === 0) { setStatus('Kit inválido: nenhum .sfz encontrado'); return; }
 
 	const name = file.name.replace(/\.kit$/i, '');
-	kits.push({ name, sfzNames, zip });
-	updateKitSelect();
+	const entry = { name, sfzNames, zip };
+
+	// Verifica se já existe um kit com mesmo nome e substitui
+	const existing = kits.findIndex(k => k.name === name);
+	let targetIndex;
+	
+	if (existing >= 0) {
+		kits[existing] = entry;
+		targetIndex = existing; // Guarda o índice substituído
+	} else {
+		kits.push(entry);
+		targetIndex = kits.length - 1; // Guarda o índice do novo kit
+	}
+
+	updateKitSelect(targetIndex);
 }
 
 async function applyKit(kitIndex, sfzIndex = 0) {
@@ -422,7 +439,7 @@ async function applyKit(kitIndex, sfzIndex = 0) {
 	setStatus(`${kitName} - ${loaded} samples`);
 }
 
-function updateKitSelect() {
+function updateKitSelect(targetIndex = -1) {
 	const sel = document.getElementById('kit-select');
 	sel.innerHTML = '';
 
@@ -444,11 +461,12 @@ function updateKitSelect() {
 		});
 	});
 
-	// Seleciona o último carregado
-	const lastVal = `${kits.length - 1}:0`;
-	sel.value = lastVal;
-	const [ki, si] = lastVal.split(':').map(Number);
-	applyKit(ki, si);
+	// Se targetIndex for válido, seleciona ele; senão, vai pro último
+	const ki = targetIndex >= 0 ? targetIndex : kits.length - 1;
+	const val = `${ki}:0`;
+	
+	sel.value = val;
+	applyKit(ki, 0);
 }
 
 function parseSFZ(text) {
@@ -588,7 +606,7 @@ let masterGain = null;
 let masterVolume = 1.0;
 
 function triggerSample(note, velocity, time) {
-	if (!kitLoaded || !kitBuffers[note]) return;
+	if (!kitLoaded || !kitBuffers[note] || !masterGain) return;
 	const src = audioCtx.createBufferSource();
 	const gain = audioCtx.createGain();
 	src.buffer = kitBuffers[note];
@@ -610,6 +628,10 @@ function initAudio() {
 }
 
 function togglePlay() {
+	if (!styleLoaded) {
+		setStatus('Carregue um estilo primeiro!');
+		return;
+	}
 	initAudio();
 	if (!isPlaying) {
 		isPlaying = true;
@@ -652,7 +674,7 @@ function showDebugInfo() {
 	: '?';
 
 	let info = `Nome: ${styleName}\n`;
-	info += `PPQ: ${stylePPQ}\nFórmula de compasso: ${beatsPerBar}/4\nTicks por compasso: ${barLengthTicks}\n`;
+	info += `PPQ: ${stylePPQ}\nFórmula de compasso: ${beatsPerBar}/${beatType}\nTicks por compasso: ${barLengthTicks}\n`;
 	info += `Total de eventos: ${styleMidiEvents.length}\nCompassos no arquivo: ${totalBars}\n\n`;
 	info += `${'-'.repeat(40)}\nSEÇÕES\n${'-'.repeat(40)}\n\n`;
 
@@ -779,7 +801,7 @@ function processTap() {
 	const avgGap = gaps.reduce((a, b) => a + b, 0) / gaps.length;
 	const newBpm = Math.round(60000 / avgGap);
 	bpm = Math.max(40, Math.min(250, newBpm));
-	bpmInput.value = bpm;
+	document.getElementById('bpm-display').value = bpm;
 	setStatus(`Tap tempo: ${bpm} BPM`);
 }
 
@@ -842,10 +864,8 @@ bpmInput.addEventListener('change', (e) => {
 	bpmInput.value = bpm;
 });
 
-document.getElementById('btn-load-kit').addEventListener('click', () =>
-document.getElementById('input-kit').click());
-document.getElementById('btn-add-style').addEventListener('click', () =>
-document.getElementById('input-style').click());
+document.getElementById('btn-load-kit').addEventListener('click', () => document.getElementById('input-kit').click());
+document.getElementById('btn-add-style').addEventListener('click', () => document.getElementById('input-style').click());
 document.getElementById('input-style').addEventListener('change', async e => {
 	for (const file of e.target.files) {
 		await loadStyleFile(file);
@@ -881,26 +901,6 @@ document.getElementById('debug-modal').style.display = 'none');
 document.getElementById('input-kit').addEventListener('change', async e => {
 	const file = e.target.files[0];
 	if (file) { await loadKitFile(file); if (kitLoaded) await dbSave('kit', file); }
-	e.target.value = '';
-});
-document.getElementById('input-style').addEventListener('change', async e => {
-	for (const file of e.target.files) {
-		await loadStyleFile(file);
-	}
-	// Salva cada style indexado por posição no array e constrói manifesto explícito
-	const manifest = [];
-	for (let i = 0; i < styles.length; i++) {
-		const file = Array.from(e.target.files).find(f =>
-			f.name.replace(/\.style$/i, '') === styles[i].name || styles[i].name.includes(f.name.replace(/\.style$/i, ''))
-		);
-		if (file) {
-			const key = `style:${i}`;
-			await dbSave(key, file);
-			manifest.push(key);
-		}
-	}
-	await dbSave('style:manifest', manifest);
-	await dbSave('style:active', activeStyleIndex);
 	e.target.value = '';
 });
 
@@ -991,12 +991,13 @@ async function restoreLastSession() {
 	// Fallback: se não há manifesto, tenta varredura sequencial legada (compatibilidade)
 	if (keys.length === 0) {
 		let i = 0;
-		while (true) {
-			const sf = await dbLoad(`style:${i}`);
-			if (!sf) break;
+		let sf = await dbLoad(`style:${i}`);
+		
+		while (sf) {
 			setStatus(`Restaurando style ${i + 1}...`);
 			await loadStyleFile(sf);
 			i++;
+			sf = await dbLoad(`style:${i}`);
 		}
 		if (i > 0) restored = true;
 	} else {

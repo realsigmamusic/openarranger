@@ -68,8 +68,6 @@ function applyStyle(index) {
 	nextSection = 'Main A';
 	updateUI();
 	document.getElementById('bpm-display').value = bpm;
-	updateButtonAvailability();
-	updateHeaderLabels();
 	setStatus(`Events ${styleMidiEvents.length} - PPQ ${stylePPQ} - Time ${beatsPerBar}/${beatType}`);
 }
 

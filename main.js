@@ -898,7 +898,7 @@ document.getElementById('debug-modal').style.display = 'none');
 
 document.getElementById('input-kit').addEventListener('change', async e => {
 	const file = e.target.files[0];
-	if (file) { await loadKitFile(file); if (kitLoaded) await dbSave('kit', file); }
+	if (file) { await loadKitFile(file); await dbSave('kit', file); }
 	e.target.value = '';
 });
 

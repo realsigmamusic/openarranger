@@ -32,6 +32,10 @@ h1 {
 	padding: 0.25rem 0.5rem;
 }
 
+#app-version {
+	font-size: 0.85rem;
+}
+
 .lcd-screen {
 	background-color: #9ea792;
 	padding: 0.6rem 0.75rem;

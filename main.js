@@ -1022,3 +1022,13 @@ async function restoreLastSession() {
 // Inicialização ==================================================================================
 updateUI();
 restoreLastSession();
+
+// Versionamento dinâmico do app ==================================================================
+async function loadAppVersion() {
+    const res = await fetch('./sw.js');
+    const text = await res.text();
+    const match = text.match(/CACHE_NAME\s*=\s*['"]([^'"]+)['"]/);
+    if (match) document.getElementById('app-version').textContent = `v${match[1]}`;
+}
+
+loadAppVersion();

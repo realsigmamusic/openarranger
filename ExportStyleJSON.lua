@@ -4,10 +4,8 @@
 
 local proj = 0
 
--- Inicia um bloco de Undo (se der Ctrl+Z no Reaper, desfaz tudo)
 reaper.Undo_BeginBlock()
 
--- Pega o caminho do projeto
 local _, full_path = reaper.EnumProjects(proj, "")
 if not full_path or full_path == "" then
   reaper.ShowMessageBox("Salve o projeto antes de rodar o script.", "Erro", 0)
@@ -30,8 +28,7 @@ if reaper.CountTempoTimeSigMarkers(proj) > 0 then
   end
 end
 
--- Dicionário de tradução (Yamaha -> OpenArranger)
--- Coloque as chaves sempre em minúsculas para facilitar a busca
+-- Dicionário de tradução
 local alias_map = {
   ["fill in aa"] = "Fill In A",
   ["fill in bb"] = "Fill In B",
@@ -41,20 +38,16 @@ local alias_map = {
   ["fill in ba"] = "Break"
 }
 
--- 1. LIMPEZA E PADRONIZAÇÃO DOS MARCADORES NO PROJETO
+-- 1. LIMPEZA E PADRONIZAÇÃO DOS MARCADORES
 local retval, num_markers, num_regions = reaper.CountProjectMarkers(proj)
 
--- Loop de trás para frente (necessário ao deletar itens no Reaper)
 for i = num_markers - 1, 0, -1 do
   local retval, isrgn, pos, rgnend, name, markr_id = reaper.EnumProjectMarkers(i)
   if not isrgn then
     local lower_name = name:lower()
     
-    -- A. Deleta os marcadores inúteis (SInt, SFF1, SFF2)
     if lower_name:match("sint") or lower_name:match("sff") then
       reaper.DeleteProjectMarker(proj, markr_id, false)
-      
-    -- B. Renomeia os marcadores usando nosso dicionário
     elseif alias_map[lower_name] then
       local new_name = alias_map[lower_name]
       reaper.SetProjectMarker(markr_id, false, pos, rgnend, new_name)
@@ -62,27 +55,63 @@ for i = num_markers - 1, 0, -1 do
   end
 end
 
-
--- 2. LEITURA DOS MARCADORES (AGORA LIMPOS) PARA O JSON
+-- 2. LEITURA DOS MARCADORES PARA O JSON
 local markers = {}
--- Conta novamente porque a quantidade pode ter mudado após deletar
 retval, num_markers, num_regions = reaper.CountProjectMarkers(proj)
 
 for i = 0, num_markers - 1 do
   local retval, isrgn, pos, rgnend, name, markr_id = reaper.EnumProjectMarkers(i)
   if not isrgn and name ~= "" then
-    -- Retorna beats, measures... o index 2 é o compasso (0-indexed)
     local _, measures = reaper.TimeMap2_timeToBeats(proj, pos)
     local bar_num = math.floor(measures) + 1 
-    
     table.insert(markers, { name = name, bar = bar_num })
   end
 end
 
+-- 2.5 BUSCA DE CANAIS MIDI UTILIZADOS
+local used_channels = {}
+local num_tracks = reaper.CountTracks(proj)
+
+for i = 0, num_tracks - 1 do
+  local track = reaper.GetTrack(proj, i)
+  local num_items = reaper.CountTrackMediaItems(track)
+  
+  for j = 0, num_items - 1 do
+    local item = reaper.GetTrackMediaItem(track, j)
+    local take = reaper.GetActiveTake(item)
+    
+    -- Verifica se o take existe e se é um item MIDI
+    if take and reaper.TakeIsMIDI(take) then
+      local _, notecnt = reaper.MIDI_CountEvts(take)
+      
+      -- Varre todas as notas do item para extrair o canal
+      for k = 0, notecnt - 1 do
+        local _, _, _, _, _, chan = reaper.MIDI_GetNote(take, k)
+        -- O Reaper usa base 0 (0-15), nós salvamos em base 1 (1-16)
+        used_channels[chan + 1] = true 
+      end
+    end
+  end
+end
+
+-- Converte a tabela (que funciona como um 'Set' para evitar repetição) em um array ordenado
+local channels_list = {}
+for ch, _ in pairs(used_channels) do
+  table.insert(channels_list, ch)
+end
+table.sort(channels_list)
+
+-- Fallback de segurança: se o projeto estiver totalmente sem notas, assume canal 10
+if #channels_list == 0 then
+  table.insert(channels_list, 10)
+end
+
+-- Transforma a lista numa string JSON de array, ex: "[9, 10]"
+local channels_json = "[" .. table.concat(channels_list, ", ") .. "]"
+
 -- 3. GERAÇÃO DO JSON
 local is_compound = (denom == 8 and (num == 6 or num == 9 or num == 12))
 
--- Ajusta o BPM caso a base seja "1/4 dotted" 
 local final_bpm = bpm
 if is_compound then
   final_bpm = bpm / 1.5
@@ -98,7 +127,9 @@ if is_compound then
   table.insert(lines, '  "beatUnit": "4.",')
 end
 
-table.insert(lines, '  "drumChannel": 10,')
+-- Injeta os canais dinâmicos aqui
+table.insert(lines, string.format('  "drumChannel": %s,', channels_json))
+
 table.insert(lines, '  "sections": {')
 
 for i, m in ipairs(markers) do
@@ -125,5 +156,4 @@ else
   reaper.ShowMessageBox("Erro ao salvar arquivo JSON.", "Erro", 0)
 end
 
--- Encerra o bloco de Undo do Reaper
 reaper.Undo_EndBlock("Exportar JSON do OpenArranger", -1)

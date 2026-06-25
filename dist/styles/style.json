@@ -1,0 +1,23 @@
+{
+  "name": "VintageGtrPop",
+  "timeSignature": [4, 4],
+  "bpm": 130,
+  "Rhythm": 10,
+  "subRhythm": 9,
+  "sections": {
+    "Main A": { "startBar": 1, "endBar": 5 },
+    "Main B": { "startBar": 5, "endBar": 9 },
+    "Main C": { "startBar": 9, "endBar": 13 },
+    "Main D": { "startBar": 13, "endBar": 17 },
+    "Fill In A": { "startBar": 17, "endBar": 18 },
+    "Fill In B": { "startBar": 18, "endBar": 19 },
+    "Fill In C": { "startBar": 19, "endBar": 20 },
+    "Fill In D": { "startBar": 20, "endBar": 21 },
+    "Intro A": { "startBar": 21, "endBar": 23 },
+    "Intro B": { "startBar": 23, "endBar": 27 },
+    "Intro C": { "startBar": 27, "endBar": 36 },
+    "Ending A": { "startBar": 36, "endBar": 38 },
+    "Ending B": { "startBar": 38, "endBar": 41 },
+    "Ending C": { "startBar": 41, "endBar": 42 }
+  }
+}

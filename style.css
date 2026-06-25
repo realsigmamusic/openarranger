@@ -206,7 +206,7 @@ h1 {
 	flex-direction: column;
 }
 
-#volume-slider {
+#volume-slider-rhythm, #volume-slider-sub {
 	-webkit-appearance: none;
 	appearance: none;
 	width: 4rem;
@@ -216,23 +216,23 @@ h1 {
 	box-shadow: 0 0 3px rgba(26, 26, 26, 0.4);
 	outline: none;
 	cursor: pointer;
-	margin: 0.5rem 0;
+	margin: 0.2rem 0;
 }
 
-#volume-slider::-webkit-slider-thumb {
+#volume-slider-rhythm::-webkit-slider-thumb, #volume-slider-sub::-webkit-slider-thumb {
 	-webkit-appearance: none;
 	appearance: none;
-	width: 14px;
-	height: 14px;
+	width: 10px;
+	height: 10px;
 	border-radius: 50%;
 	background: #2c2c2c;
 	box-shadow: 0 0 3px rgba(26, 26, 26, 0.4);
 	cursor: pointer;
 }
 
-#volume-slider::-moz-range-thumb {
-	width: 14px;
-	height: 14px;
+#volume-slider-rhythm::-moz-range-thumb, #volume-slider-sub::-moz-range-thumb {
+	width: 10px;
+	height: 10px;
 	border-radius: 50%;
 	background: #1a1a1a;
 	border: none;

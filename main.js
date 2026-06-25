@@ -24,12 +24,16 @@ const scheduleAheadTime = 0.1; // segundos à frente para agendar
 const lookahead = 25.0; // intervalo do setTimeout em ms
 
 // Data Layer =====================================================================================
-const kitBuffers = {}; // note → AudioBuffer
-let kits = []; // array de { name, sfzNames, zip }
-let activeKitIndex = -1;
-let activeSfzIndex = 0;
-let kitLoaded = false;
-let kitName = 'Load drumkit';
+const kitBuffers    = {}; // Rhythm: note → AudioBuffer
+const kitBuffersSub = {}; // SubRhythm: note → AudioBuffer
+let kits            = []; // array de { name, sfzNames, zip }
+let activeKitIndex  = -1;
+let activeSfzIndex    = 0; // SFZ ativo no select Rhythm
+let activeSfzIndexSub = 0; // SFZ ativo no select SubRhythm
+let kitLoaded         = false;
+let kitLoadedSub      = false;
+let kitName           = 'Load drumkit';
+let kitNameSub        = 'Load drumkit';
 
 // Styles: array de { name, styleData, styleMidiEvents, stylePPQ, beatsPerBar, beatType, drumChannels }
 let styles = [];
@@ -38,12 +42,14 @@ let activeStyleIndex = -1; // índice do style ativo
 // Atalhos para o style ativo (lidos dinamicamente via getters funcionais)
 let styleData = null;
 let styleMidiEvents = null;
+let styleMidiEventsSub = null;
 let stylePPQ = 480;
 let beatsPerBar = 4;
 let beatType = 4;
 let styleLoaded = false;
 let styleName = 'Load style';
-let drumChannels = [8, 9];
+let drumChannels    = [9];  // Rhythm  (canal 10 em 1-based → índice 9)
+let drumChannelsSub = [8];  // SubRhythm (canal 9 em 1-based → índice 8)
 let beatUnitFactor = 1; // fator de conversão: quantas semínimas vale 1 beat
 
 function applyStyle(index) {
@@ -53,13 +59,15 @@ function applyStyle(index) {
 	if (index < 0 || index >= styles.length) return;
 	activeStyleIndex = index;
 	const s = styles[index];
-	styleData = s.styleData;
-	styleMidiEvents = s.styleMidiEvents;
-	stylePPQ = s.stylePPQ;
-	beatsPerBar = s.beatsPerBar;
-	beatType = s.beatType;
-	beatUnitFactor = s.beatUnitFactor ?? 1;
-	drumChannels = s.drumChannels;
+	styleData           = s.styleData;
+	styleMidiEvents     = s.styleMidiEvents;
+	styleMidiEventsSub  = s.styleMidiEventsSub ?? [];
+	stylePPQ            = s.stylePPQ;
+	beatsPerBar         = s.beatsPerBar;
+	beatType            = s.beatType;
+	beatUnitFactor      = s.beatUnitFactor ?? 1;
+	drumChannels        = s.drumChannels;
+	drumChannelsSub     = s.drumChannelsSub ?? [];
 	styleLoaded = true;
 	styleName = s.name;
 	barLengthTicks = stylePPQ * (4 / beatType) * beatsPerBar;
@@ -95,11 +103,13 @@ function updateStyleSelect(autoApply = true) {
 }
 
 // Scheduler state ================================================================================
-let barEvents = null; // eventos do compasso atual (relativeTick 0..barTicks-1)
+let barEvents    = null; // eventos Rhythm do compasso atual (relativeTick 0..barTicks-1)
+let barEventsSub = null; // eventos SubRhythm do compasso atual
 let barLengthTicks = 0; // duração de 1 compasso em ticks
 let barStartTime = 0; // audioCtx.currentTime do início do compasso atual
 let barTickOffset = 0; // tick atual dentro do compasso
-let eventIndex = 0; // próximo evento a agendar em barEvents
+let eventIndex    = 0; // próximo evento Rhythm a agendar em barEvents
+let eventIndexSub = 0; // próximo evento SubRhythm a agendar em barEventsSub
 
 // Flag: usuário clicou na seção ativa → repetir do compasso 1 na próxima transição
 let _repeatCurrent = false;
@@ -205,6 +215,18 @@ function getBarEvents(sectionName, barIndex) {
 	.map(e => ({ ...e, relativeTick: e.tick - barStart }));
 }
 
+function getBarEventsSub(sectionName, barIndex) {
+	const range = getSectionRange(sectionName);
+	if (!range || !styleMidiEventsSub) return [];
+
+	const barStart = range.startTick + barIndex * barLengthTicks;
+	const barEnd   = barStart + barLengthTicks;
+
+	return styleMidiEventsSub
+	.filter(e => e.tick >= barStart && e.tick < barEnd)
+	.map(e => ({ ...e, relativeTick: e.tick - barStart }));
+}
+
 // Quantos compassos tem a seção?
 function sectionBarCount(sectionName) {
 	const range = getSectionRange(sectionName);
@@ -236,13 +258,19 @@ function startBar(sectionName, barIndexInSection, startTime, entryTick = 0) {
 	// Em immediate, recua o barStartTime para que barTickOffset comece em entryTick
 	barStartTime = startTime - ticksToSeconds(entryTick);
 	barTickOffset = entryTick;
-	eventIndex = 0;
-	barEvents = styleLoaded
+	eventIndex    = 0;
+	eventIndexSub = 0;
+	barEvents    = styleLoaded
 		? getBarEvents(sectionName, barIndexInSection)
+		: [];
+	barEventsSub = styleLoaded
+		? getBarEventsSub(sectionName, barIndexInSection)
 		: [];
 	// Pula eventos anteriores ao ponto de entrada
 	while (eventIndex < barEvents.length &&
 	 barEvents[eventIndex].relativeTick < entryTick) eventIndex++;
+	while (eventIndexSub < barEventsSub.length &&
+	 barEventsSub[eventIndexSub].relativeTick < entryTick) eventIndexSub++;
 
 	if (sectionName.startsWith('Main ')) returnSection = sectionName;
 	updateUI();
@@ -257,12 +285,21 @@ function scheduler() {
 		const tickTime = barStartTime + ticksToSeconds(barTickOffset);
 		if (tickTime >= horizon) break;
 
-		// Dispara todos os eventos que caem no tick atual
+		// Dispara todos os eventos Rhythm que caem no tick atual
 		while (eventIndex < barEvents.length &&
 			barEvents[eventIndex].relativeTick <= barTickOffset) {
 			const ev = barEvents[eventIndex++];
 			const evT = barStartTime + ticksToSeconds(ev.relativeTick);
 			triggerSample(ev.note, ev.velocity, evT);
+		}
+		// Dispara todos os eventos SubRhythm que caem no tick atual
+		if (barEventsSub) {
+			while (eventIndexSub < barEventsSub.length &&
+				barEventsSub[eventIndexSub].relativeTick <= barTickOffset) {
+				const ev = barEventsSub[eventIndexSub++];
+				const evT = barStartTime + ticksToSeconds(ev.relativeTick);
+				triggerSampleSub(ev.note, ev.velocity, evT);
+			}
 		}
 
 		// Beat indicator: atualiza só quando o beat muda (evita rAF por tick)
@@ -389,82 +426,85 @@ async function loadKitFile(file) {
 
 	if (sfzNames.length === 0) { setStatus('Kit inválido: nenhum .sfz encontrado'); return; }
 
-	const name = file.name.replace(/\.kit$/i, '');
+	const name  = file.name.replace(/\.kit$/i, '');
 	const entry = { name, sfzNames, zip };
 
-	// Verifica se já existe um kit com mesmo nome e substitui
 	const existing = kits.findIndex(k => k.name === name);
 	let targetIndex;
-	
-	if (existing >= 0) {
-		kits[existing] = entry;
-		targetIndex = existing; // Guarda o índice substituído
-	} else {
-		kits.push(entry);
-		targetIndex = kits.length - 1; // Guarda o índice do novo kit
-	}
+	if (existing >= 0) { kits[existing] = entry; targetIndex = existing; }
+	else               { kits.push(entry);        targetIndex = kits.length - 1; }
 
 	updateKitSelect(targetIndex);
 }
 
-async function applyKit(kitIndex, sfzIndex = 0) {
+async function applyKit(kitIndex, sfzIndex = 0, role = 'rhythm') {
 	if (kitIndex < 0 || kitIndex >= kits.length) return;
+
+	const buffersObj = role === 'rhythm' ? kitBuffers : kitBuffersSub;
 	activeKitIndex = kitIndex;
-	activeSfzIndex = sfzIndex;
-	const kit = kits[kitIndex];
+	if (role === 'rhythm') activeSfzIndex    = sfzIndex;
+	else                   activeSfzIndexSub = sfzIndex;
+
+	const kit      = kits[kitIndex];
 	const sfzEntry = kit.zip.files[kit.sfzNames[sfzIndex]];
 	if (!sfzEntry) return;
 
-	// Limpa buffers anteriores
-	Object.keys(kitBuffers).forEach(k => delete kitBuffers[k]);
+	Object.keys(buffersObj).forEach(k => delete buffersObj[k]);
 
 	const mapping = parseSFZ(await sfzEntry.async('string'));
 	let loaded = 0;
 
 	for (const [note, path] of Object.entries(mapping)) {
 		const targetName = path.replace(/\\/g, '/').split('/').pop().toLowerCase();
-		const entryKey = Object.keys(kit.zip.files).find(k => k.toLowerCase().endsWith(targetName));
-		const entry = kit.zip.files[entryKey];
+		const entryKey   = Object.keys(kit.zip.files).find(k => k.toLowerCase().endsWith(targetName));
+		const entry      = kit.zip.files[entryKey];
 		if (!entry) { console.warn('Sample não encontrado:', path); continue; }
 		try {
-			kitBuffers[note] = await audioCtx.decodeAudioData(await entry.async('arraybuffer'));
+			buffersObj[note] = await audioCtx.decodeAudioData(await entry.async('arraybuffer'));
 			loaded++;
 		} catch (e) { console.warn('Erro ao decodificar:', path, e); }
 	}
 
-	kitLoaded = true;
-	kitName = `${kit.sfzNames[sfzIndex].replace(/\.sfz$/i, '').split('/').pop()}`;
-	setStatus(`${kitName} - ${loaded} samples`);
+	const label = `${kit.sfzNames[sfzIndex].replace(/\.sfz$/i, '').split('/').pop()}`;
+	if (role === 'rhythm') { kitLoaded    = true; kitName    = label; }
+	else                   { kitLoadedSub = true; kitNameSub = label; }
+	setStatus(`${label} (${role}) - ${loaded} samples`);
 }
 
 function updateKitSelect(targetIndex = -1) {
-	const sel = document.getElementById('kit-select');
-	sel.innerHTML = '';
+	const selRhythm = document.getElementById('kit-select-rhythm');
+	const selSub    = document.getElementById('kit-select-sub');
+	selRhythm.innerHTML = '';
+	selSub.innerHTML    = '';
 
 	if (kits.length === 0) {
-		const opt = document.createElement('option');
-		opt.value = ''; opt.textContent = 'Load drumkit';
-		sel.appendChild(opt);
+		for (const sel of [selRhythm, selSub]) {
+			const opt = document.createElement('option');
+			opt.value = ''; opt.textContent = 'Load kit';
+			sel.appendChild(opt);
+		}
 		return;
 	}
 
 	kits.forEach((kit, ki) => {
 		kit.sfzNames.forEach((sfz, si) => {
-			const opt = document.createElement('option');
-			opt.value = `${ki}:${si}`;
-			opt.textContent = kit.sfzNames.length > 1
-				? `${sfz.replace(/\.sfz$/i, '').split('/').pop()}`
+			const label = kit.sfzNames.length > 1
+				? sfz.replace(/\.sfz$/i, '').split('/').pop()
 				: kit.name;
-			sel.appendChild(opt);
+			for (const sel of [selRhythm, selSub]) {
+				const opt = document.createElement('option');
+				opt.value = `${ki}:${si}`;
+				opt.textContent = label;
+				sel.appendChild(opt);
+			}
 		});
 	});
 
-	// Se targetIndex for válido, seleciona ele; senão, vai pro último
 	const ki = targetIndex >= 0 ? targetIndex : kits.length - 1;
-	const val = `${ki}:0`;
-	
-	sel.value = val;
-	applyKit(ki, 0);
+	selRhythm.value = `${ki}:0`;
+	selSub.value    = `${ki}:0`;
+	applyKit(ki, 0, 'rhythm');
+	applyKit(ki, 0, 'sub');
 }
 
 function parseSFZ(text) {
@@ -560,35 +600,47 @@ async function loadStyleFile(file) {
 	setStatus(`Carregando estilo: ${file.name}...`);
 
 	const zip = await JSZip.loadAsync(file);
-	const jsonEntry = zip.files['style.json'];
-	if (!jsonEntry) { setStatus('style.json não encontrado'); return; }
+	const jsonEntry = Object.values(zip.files).find(f => f.name.endsWith('.json'));
+	if (!jsonEntry) { setStatus('.json não encontrado'); return; }
 
 	const sd = JSON.parse(await jsonEntry.async('string'));
 
 	// Define os canais de bateria dinamicamente (1-based no JSON para facilitar)
-	let dc;
-	if (sd.drumChannel !== undefined) {
-		dc = Array.isArray(sd.drumChannel) ? sd.drumChannel.map(ch => ch - 1) : [sd.drumChannel - 1];
+	// Novo formato: { "Rhythm": 10, "subRhythm": 9 }
+	// Retrocompatível com: { "drumChannel": 10 } ou { "drumChannel": [9,10] }
+	let dc, dcSub;
+	if (sd.Rhythm !== undefined || sd.subRhythm !== undefined) {
+		dc    = sd.Rhythm    !== undefined ? [sd.Rhythm - 1]    : [9];
+		dcSub = sd.subRhythm !== undefined ? [sd.subRhythm - 1] : [];
+	} else if (sd.drumChannel !== undefined) {
+		const arr = Array.isArray(sd.drumChannel)
+			? sd.drumChannel.map(ch => ch - 1)
+			: [sd.drumChannel - 1];
+		dc    = [arr[0]];
+		dcSub = arr.length > 1 ? [arr[1]] : [];
 	} else {
-		dc = [8, 9];
+		dc    = [9];
+		dcSub = [8];
 	}
 
-	const midEntry = zip.files['style.mid'];
-	if (!midEntry) { setStatus('style.mid não encontrado'); return; }
+	const midEntry = Object.values(zip.files).find(f => f.name.endsWith('.mid'));
+	if (!midEntry) { setStatus('.mid não encontrado'); return; }
 
 	const midi = parseMidi(await midEntry.async('arraybuffer'));
 	const ppq = midi.ppq;
 	const bpb = sd.timeSignature?.[0] ?? 4;
 	const bt = sd.timeSignature?.[1] ?? 4;
 	const buf = parseBeatUnit(sd.beatUnit); // beatUnitFactor: 1=semínima (default), 1.5=semínima pontuada, 0.5=colcheia...
-	const events = extractDrumEvents(midi, dc);
+	const events    = extractDrumEvents(midi, dc);
+	const eventsSub = dcSub.length > 0 ? extractDrumEvents(midi, dcSub) : [];
 	const sName = sd.name || file.name.replace(/\.style$/i, '');
 
 	// Verifica se já existe um style com mesmo nome e substitui
 	const existing = styles.findIndex(s => s.name === sName);
 	const entry = { name: sName, styleData: sd, styleMidiEvents: events,
+		styleMidiEventsSub: eventsSub,
 		stylePPQ: ppq, beatsPerBar: bpb, beatType: bt, beatUnitFactor: buf,
-		drumChannels: dc, bpm: sd.bpm || bpm };
+		drumChannels: dc, drumChannelsSub: dcSub, bpm: sd.bpm || bpm };
 
 	if (existing >= 0) {
 		styles[existing] = entry;
@@ -600,8 +652,10 @@ async function loadStyleFile(file) {
 }
 
 // Sample player ==================================================================================
-let masterGain = null;
-let masterVolume = 1.0;
+let masterGain      = null;
+let masterGainSub   = null;
+let masterVolume    = 1.0;
+let masterVolumeSub = 1.0;
 
 function triggerSample(note, velocity, time) {
 	if (!kitLoaded || !kitBuffers[note] || !masterGain) return;
@@ -615,6 +669,18 @@ function triggerSample(note, velocity, time) {
 	src.start(time);
 }
 
+function triggerSampleSub(note, velocity, time) {
+	if (!kitLoadedSub || !kitBuffersSub[note] || !masterGainSub) return;
+	const src = audioCtx.createBufferSource();
+	const gain = audioCtx.createGain();
+	src.buffer = kitBuffersSub[note];
+	const volume = Math.pow(velocity / 127, 2);
+	gain.gain.setValueAtTime(volume, time);
+	src.connect(gain);
+	gain.connect(masterGainSub);
+	src.start(time);
+}
+
 // Play / Stop ====================================================================================
 function initAudio() {
 	if (!audioCtx) {
@@ -622,6 +688,9 @@ function initAudio() {
 		masterGain = audioCtx.createGain();
 		masterGain.gain.value = masterVolume;
 		masterGain.connect(audioCtx.destination);
+		masterGainSub = audioCtx.createGain();
+		masterGainSub.gain.value = masterVolumeSub;
+		masterGainSub.connect(audioCtx.destination);
 	}
 }
 
@@ -830,9 +899,13 @@ function makeLongPress(btn, action) {
 }
 
 // Event listeners ================================================================================
-document.getElementById('volume-slider').addEventListener('input', e => {
+document.getElementById('volume-slider-rhythm').addEventListener('input', e => {
 	masterVolume = parseInt(e.target.value, 10) / 100;
 	if (masterGain) masterGain.gain.value = masterVolume;
+});
+document.getElementById('volume-slider-sub').addEventListener('input', e => {
+	masterVolumeSub = parseInt(e.target.value, 10) / 100;
+	if (masterGainSub) masterGainSub.gain.value = masterVolumeSub;
 });
 
 document.getElementById('quantization').addEventListener('change', e => {
@@ -888,9 +961,13 @@ document.getElementById('style-select').addEventListener('change', async e => {
 		await dbSave('style:active', idx);
 	}
 });
-document.getElementById('kit-select').addEventListener('change', async e => {
+document.getElementById('kit-select-rhythm').addEventListener('change', async e => {
 	const [ki, si] = e.target.value.split(':').map(Number);
-	if (!isNaN(ki)) await applyKit(ki, si);
+	if (!isNaN(ki)) await applyKit(ki, si, 'rhythm');
+});
+document.getElementById('kit-select-sub').addEventListener('change', async e => {
+	const [ki, si] = e.target.value.split(':').map(Number);
+	if (!isNaN(ki)) await applyKit(ki, si, 'sub');
 });
 document.getElementById('btn-debug').addEventListener('click', showDebugInfo);
 document.getElementById('close-debug').addEventListener('click', () =>

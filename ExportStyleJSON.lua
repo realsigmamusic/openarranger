@@ -106,8 +106,9 @@ if #channels_list == 0 then
   table.insert(channels_list, 10)
 end
 
--- Transforma a lista numa string JSON de array, ex: "[9, 10]"
-local channels_json = "[" .. table.concat(channels_list, ", ") .. "]"
+-- Mapeia: maior canal = Rhythm, menor canal = subRhythm
+local rhythm_ch    = channels_list[#channels_list]
+local subrhythm_ch = channels_list[1]
 
 -- 3. GERAÇÃO DO JSON
 local is_compound = (denom == 8 and (num == 6 or num == 9 or num == 12))
@@ -128,7 +129,12 @@ if is_compound then
 end
 
 -- Injeta os canais dinâmicos aqui
-table.insert(lines, string.format('  "drumChannel": %s,', channels_json))
+if #channels_list > 1 then
+  table.insert(lines, string.format('  "Rhythm": %d,', rhythm_ch))
+  table.insert(lines, string.format('  "subRhythm": %d,', subrhythm_ch))
+else
+  table.insert(lines, string.format('  "Rhythm": %d,', rhythm_ch))
+end
 
 table.insert(lines, '  "sections": {')
 

@@ -379,9 +379,16 @@ function scheduler() {
 		}
 
 		// Salta direto para o tick do próximo evento (ou fim do compasso) em vez de ++1
-		const nextEventTick = eventIndex < barEvents.length
+		// Fix: considera o próximo evento de AMBOS os canais (Rhythm e SubRhythm),
+		// caso contrário eventos SubRhythm entre dois eventos Rhythm são pulados e
+		// disparam todos juntos atropelados no próximo tick Rhythm.
+		const nextRhythmTick = eventIndex < barEvents.length
 			? barEvents[eventIndex].relativeTick
 			: barLengthTicks - 1;
+		const nextSubTick = (barEventsSub && eventIndexSub < barEventsSub.length)
+			? barEventsSub[eventIndexSub].relativeTick
+			: barLengthTicks - 1;
+		const nextEventTick = Math.min(nextRhythmTick, nextSubTick);
 
 		// Próxima fronteira de quantização relevante
 		let nextBoundary = barLengthTicks - 1; // padrão: fim do compasso
@@ -513,53 +520,48 @@ function parseSFZ(text) {
 	// Remove comentários de linha
 	text = text.replace(/\/\/.*/g, '');
 
-	// Divide em headers e blocos: <group>, <region>, <global>, etc.
-	// Regex captura o tipo do header e tudo até o próximo header
 	const blockRe = /<(\w+)>([^<]*)/g;
 	let match;
 
-	// Estado herdado do <global> e <group>
 	let globalOpcodes = {};
-	let groupOpcodes = {};
+	let groupOpcodes  = {};
+
+	// Parse opcodes de forma robusta: tokeniza por "palavra=" para não truncar
+	// nomes de arquivo com espaços (ex: "Pop Latin Kit\Perc\Clave Wood.wav")
+	function parseOpcodes(body) {
+		const opcodes = {};
+		const line = body.replace(/[\r\n]+/g, ' ');
+		const keyRe = /\b(\w+)\s*=/g;
+		const keys = [];
+		let km;
+		while ((km = keyRe.exec(line)) !== null) {
+			keys.push({ key: km[1].toLowerCase(), valueStart: km.index + km[0].length });
+		}
+		for (let i = 0; i < keys.length; i++) {
+			const start = keys[i].valueStart;
+			const end   = i + 1 < keys.length ? keys[i + 1].valueStart - keys[i + 1].key.length - 1 : line.length;
+			opcodes[keys[i].key] = line.slice(start, end).trim();
+		}
+		return opcodes;
+	}
 
 	while ((match = blockRe.exec(text)) !== null) {
 		const blockType = match[1].toLowerCase();
 		const body = match[2];
+		const opcodes = parseOpcodes(body);
 
-		// Parse todos os opcodes do bloco: opcode=valor (valor vai até o próximo opcode ou fim)
-		const opcodes = {};
-		const opRe = /(\w+)\s*=\s*(.+?)(?=\s+\w+\s*=|$)/g;
-		let m;
-		while ((m = opRe.exec(body.replace(/[\r\n]+/g, ' '))) !== null) {
-			opcodes[m[1].toLowerCase()] = m[2].trim();
-		}
-
-		if (blockType === 'global') {
-			globalOpcodes = opcodes;
-			continue;
-		}
-
-		if (blockType === 'group') {
-			// Herda global, sobrescreve com group
-			groupOpcodes = { ...globalOpcodes, ...opcodes };
-			continue;
-		}
+		if (blockType === 'global') { globalOpcodes = opcodes; continue; }
+		if (blockType === 'group')  { groupOpcodes = { ...globalOpcodes, ...opcodes }; continue; }
 
 		if (blockType === 'region') {
-			// Herda global → group → region (precedência crescente)
 			const merged = { ...globalOpcodes, ...groupOpcodes, ...opcodes };
-
-			const sample = merged['sample']?.replace(/["\']/g, '').trim();
+			const sample = merged['sample']?.replace(/['"]/g, '').trim();
 			if (!sample) continue;
 
-			// Determina a nota MIDI com precedência correta:
-			// 1. key (define lokey=hikey=pitch_keycenter de uma vez)
-			// 2. pitch_keycenter (nota "raiz" do sample)
-			// 3. lokey (início do range - aceito como fallback)
 			let note = null;
-			if (merged['key']	 !== undefined) note = parseMidiNote(merged['key']);
+			if (merged['key']             !== undefined) note = parseMidiNote(merged['key']);
 			if (note === null && merged['pitch_keycenter'] !== undefined) note = parseMidiNote(merged['pitch_keycenter']);
-			if (note === null && merged['lokey']	 !== undefined) note = parseMidiNote(merged['lokey']);
+			if (note === null && merged['lokey']          !== undefined) note = parseMidiNote(merged['lokey']);
 
 			if (note !== null) mapping[note] = sample;
 		}

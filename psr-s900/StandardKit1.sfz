@@ -1,0 +1,76 @@
+<control> default_path=Samples/
+
+<global> loop_mode=one_shot
+
+<region> key=13 sample=StandardKit1 013.wav group=3 off_by=3
+<region> key=14 sample=StandardKit1 014.wav group=3 off_by=3
+<region> key=15 sample=StandardKit1 015.wav
+<region> key=16 sample=StandardKit1 016.wav
+<region> key=17 sample=StandardKit1 017.wav group=4 off_by=4
+<region> key=18 sample=StandardKit1 018.wav group=4 off_by=4
+<region> key=19 sample=StandardKit1 019.wav
+<region> key=20 sample=StandardKit1 020.wav
+<region> key=21 sample=StandardKit1 021.wav
+<region> key=22 sample=StandardKit1 022.wav
+<region> key=23 sample=StandardKit1 023.wav
+<region> key=24 sample=StandardKit1 024.wav
+<region> key=25 sample=StandardKit1 025.wav
+<region> key=26 sample=StandardKit1 026.wav loop_mode=loop_continuous loop_start=61788 loop_end=161341
+<region> key=27 sample=StandardKit1 027.wav
+<region> key=28 sample=StandardKit1 028.wav loop_mode=loop_continuous loop_start=86985 loop_end=186538
+<region> key=29 sample=StandardKit1 029.wav loop_mode=loop_continuous loop_start=55026 loop_end=101881
+<region> key=30 sample=StandardKit1 030.wav
+<region> key=31 sample=StandardKit1 031.wav
+<region> key=32 sample=StandardKit1 032.wav
+<region> key=33 sample=StandardKit1 033.wav
+<region> key=34 sample=StandardKit1 034.wav
+<region> key=35 sample=StandardKit1 035.wav
+<region> key=36 sample=StandardKit1 036.wav
+<region> key=37 sample=StandardKit1 037.wav
+<region> key=38 sample=StandardKit1 038.wav
+<region> key=39 sample=StandardKit1 039.wav
+<region> key=40 sample=StandardKit1 040.wav
+<region> key=41 sample=StandardKit1 041.wav
+<region> key=42 sample=StandardKit1 042.wav group=1 off_by=1
+<region> key=43 sample=StandardKit1 043.wav
+<region> key=44 sample=StandardKit1 044.wav group=1 off_by=1
+<region> key=45 sample=StandardKit1 045.wav
+<region> key=46 sample=StandardKit1 046.wav group=1 off_by=1
+<region> key=47 sample=StandardKit1 047.wav
+<region> key=48 sample=StandardKit1 048.wav
+<region> key=49 sample=StandardKit1 049.wav
+<region> key=50 sample=StandardKit1 050.wav
+<region> key=51 sample=StandardKit1 051.wav
+<region> key=52 sample=StandardKit1 052.wav
+<region> key=53 sample=StandardKit1 053.wav
+<region> key=54 sample=StandardKit1 054.wav
+<region> key=55 sample=StandardKit1 055.wav
+<region> key=56 sample=StandardKit1 056.wav
+<region> key=57 sample=StandardKit1 057.wav
+<region> key=58 sample=StandardKit1 058.wav
+<region> key=59 sample=StandardKit1 059.wav
+<region> key=60 sample=StandardKit1 060.wav
+<region> key=61 sample=StandardKit1 061.wav
+<region> key=62 sample=StandardKit1 062.wav
+<region> key=63 sample=StandardKit1 063.wav
+<region> key=64 sample=StandardKit1 064.wav
+<region> key=65 sample=StandardKit1 065.wav
+<region> key=66 sample=StandardKit1 066.wav
+<region> key=67 sample=StandardKit1 067.wav
+<region> key=68 sample=StandardKit1 068.wav
+<region> key=69 sample=StandardKit1 069.wav
+<region> key=70 sample=StandardKit1 070.wav
+<region> key=71 sample=StandardKit1 071.wav loop_mode=loop_continuous loop_start=17680 loop_end=29446
+<region> key=72 sample=StandardKit1 072.wav loop_mode=loop_continuous loop_start=12215 loop_end=27323
+<region> key=73 sample=StandardKit1 073.wav
+<region> key=74 sample=StandardKit1 074.wav loop_mode=normal
+<region> key=75 sample=StandardKit1 075.wav
+<region> key=76 sample=StandardKit1 076.wav
+<region> key=77 sample=StandardKit1 077.wav
+<region> key=78 sample=StandardKit1 078.wav
+<region> key=79 sample=StandardKit1 079.wav
+<region> key=80 sample=StandardKit1 080.wav group=2 off_by=2
+<region> key=81 sample=StandardKit1 081.wav group=2 off_by=2
+<region> key=82 sample=StandardKit1 082.wav
+<region> key=83 sample=StandardKit1 083.wav
+<region> key=84 sample=StandardKit1 084.wav

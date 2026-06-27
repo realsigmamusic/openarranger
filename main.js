@@ -493,25 +493,37 @@ function updateKitSelect(targetIndex = -1) {
 		return;
 	}
 
+	// Coleta todas as opções em ordem alfabética por label
+	const allOptions = [];
 	kits.forEach((kit, ki) => {
-		kit.sfzNames.forEach((sfz, si) => {
-			const label = kit.sfzNames.length > 1
-				? sfz.replace(/\.sfz$/i, '').split('/').pop()
-				: kit.name;
-			for (const sel of [selRhythm, selSub]) {
-				const opt = document.createElement('option');
-				opt.value = `${ki}:${si}`;
-				opt.textContent = label;
-				sel.appendChild(opt);
-			}
-		});
+		const sorted = kit.sfzNames
+			.map((sfz, si) => ({
+				ki, si,
+				label: kit.sfzNames.length > 1
+					? sfz.replace(/\.sfz$/i, '').split('/').pop()
+					: kit.name
+			}))
+			.sort((a, b) => a.label.localeCompare(b.label));
+		allOptions.push(...sorted);
 	});
 
-	const ki = targetIndex >= 0 ? targetIndex : kits.length - 1;
-	selRhythm.value = `${ki}:0`;
-	selSub.value    = `${ki}:0`;
-	applyKit(ki, 0, 'rhythm');
-	applyKit(ki, 0, 'sub');
+	for (const sel of [selRhythm, selSub]) {
+		for (const { ki, si, label } of allOptions) {
+			const opt = document.createElement('option');
+			opt.value = `${ki}:${si}`;
+			opt.textContent = label;
+			sel.appendChild(opt);
+		}
+	}
+
+	// Rhythm → primeiro SFZ; SubRhythm → segundo SFZ se existir, senão o mesmo
+	const first  = allOptions[0];
+	const second = allOptions.length > 1 ? allOptions[1] : allOptions[0];
+
+	selRhythm.value = `${first.ki}:${first.si}`;
+	selSub.value    = `${second.ki}:${second.si}`;
+	applyKit(first.ki,  first.si,  'rhythm');
+	applyKit(second.ki, second.si, 'sub');
 }
 
 function parseSFZ(text) {

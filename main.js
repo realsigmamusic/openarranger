@@ -790,6 +790,15 @@ function updateUI() {
 	document.querySelectorAll('.grid-container .btn').forEach(b => {
 		b.classList.remove('active', 'queued');
 	});
+
+	// Desabilita botões de seções que não existem no style atual
+	document.querySelectorAll('.grid-container .btn[data-section]').forEach(btn => {
+		const sec = btn.dataset.section;
+		const exists = !styleLoaded || !!styleData?.sections?.[sec];
+		btn.disabled = !exists;
+		btn.classList.toggle('section-missing', !exists);
+	});
+
 	const activeBtn = document.querySelector(`.grid-container .btn[data-section="${currentSection}"]`);
 	if (activeBtn) activeBtn.classList.add('active');
 
@@ -997,6 +1006,8 @@ document.querySelectorAll('.grid-container .btn').forEach(btn => {
 	btn.addEventListener('click', e => {
 		const clicked = e.target.closest('[data-section]')?.dataset.section;
 		if (!clicked) return;
+
+		if (styleLoaded && !styleData?.sections?.[clicked]) return; // seção não existe neste style
 
 		if (!isPlaying) {
 			currentSection = clicked;

@@ -305,6 +305,18 @@ h1 {
 	box-shadow: 0 0 15px #ffffff;
 }
 
+.btn:disabled,
+.btn.section-missing {
+	opacity: 0.25;
+	filter: grayscale(0.6);
+	cursor: not-allowed;
+	box-shadow: none;
+}
+
+.btn:disabled:active {
+	transform: none;
+}
+
 
 /* FILA DE ESPERA */
 @keyframes pulse-queued {

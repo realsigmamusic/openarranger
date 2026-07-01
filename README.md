@@ -214,7 +214,7 @@ Quando omitido, o OpenArranger assume `4`.
 
 Este projeto é distribuído sob a Licença MIT.
 
-Veja o arquivo [**LICENCE**](LICENCE).
+Veja o arquivo **LICENCE**.
 
 ## Créditos
 

@@ -461,3 +461,72 @@ h1 {
 .play-btn.playing {
 	background: #555 !important;
 }
+/* LIBRARY MODAL (gerenciar styles e kits) */
+.library-content {
+	color: #ddd;
+}
+
+.library-title {
+	color: #888;
+	font-size: 0.8rem;
+	letter-spacing: 0.1em;
+	text-transform: uppercase;
+	margin: 1rem 0 0.4rem;
+}
+
+.library-list {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+
+.library-row {
+	display: flex;
+	align-items: center;
+	gap: 0.6rem;
+	padding: 0.4rem 0;
+	border-bottom: 1px solid #333;
+}
+
+.library-name {
+	flex: 1;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.library-meta {
+	font-size: 0.75rem;
+	color: #8a8;
+	white-space: nowrap;
+}
+
+.library-empty {
+	color: #777;
+	padding: 0.4rem 0;
+	font-style: italic;
+}
+
+.library-del {
+	min-width: 5.5rem;
+	min-height: 2.5rem; /* alvo de toque confortável no celular */
+	font-family: inherit;
+	font-size: 0.8rem;
+	color: #e57373;
+	background: transparent;
+	border: 1px solid #e57373;
+	border-radius: 0.3rem;
+	cursor: pointer;
+	flex-shrink: 0;
+}
+
+.library-del.armed {
+	color: #fff;
+	background: #c62828;
+	border-color: #c62828;
+}
+
+.library-del:disabled {
+	opacity: 0.4;
+}

@@ -6,6 +6,7 @@
 
 import { state } from './state.js';
 import { dbSave } from './persistence.js';
+import { saveStyle, saveKit, syncStyleManifest, openLibrary, closeLibrary } from './library.js';
 import { setStatus, showDebugInfo, updateUI } from './ui.js';
 import { makeLongPress, vibrate } from './utils.js';
 import { togglePlay } from './sample-player.js';
@@ -52,20 +53,12 @@ export function wireUpEvents() {
 	document.getElementById('btn-add-style').addEventListener('click', () => document.getElementById('input-style').click());
 	document.getElementById('input-style').addEventListener('change', async e => {
 		for (const file of e.target.files) {
-			await loadStyleFile(file);
+			const entry = await loadStyleFile(file);
+			if (entry) await saveStyle(entry, file); // só salva o que carregou de verdade
 		}
-		const manifest = [];
-		for (let i = 0; i < state.styles.length; i++) {
-			manifest.push(`style:${i}`);
-		}
-		const offset = state.styles.length - e.target.files.length;
-		for (let j = 0; j < e.target.files.length; j++) {
-			await dbSave(`style:${offset + j}`, e.target.files[j]);
-		}
-		await dbSave('style:manifest', manifest);
-		await dbSave('style:active', state.activeStyleIndex);
 		e.target.value = '';
 		updateStyleSelect(true);
+		await syncStyleManifest(); // depois de aplicar, pra gravar o style ativo correto
 	});
 	document.getElementById('style-select').addEventListener('change', async e => {
 		const idx = parseInt(e.target.value);
@@ -85,12 +78,20 @@ export function wireUpEvents() {
 	document.getElementById('btn-record').addEventListener('click', toggleRecording);
 	document.getElementById('btn-play-recording').addEventListener('click', toggleRecordingPlayback);
 	document.getElementById('btn-debug').addEventListener('click', showDebugInfo);
+	document.getElementById('btn-library').addEventListener('click', openLibrary);
+	document.getElementById('close-library').addEventListener('click', closeLibrary);
+	document.getElementById('library-modal').addEventListener('click', e => {
+		if (e.target.id === 'library-modal') closeLibrary(); // toque fora da caixa fecha
+	});
 	document.getElementById('close-debug').addEventListener('click', () =>
 		document.getElementById('debug-modal').style.display = 'none');
 
 	document.getElementById('input-kit').addEventListener('change', async e => {
 		const file = e.target.files[0];
-		if (file) { await loadKitFile(file); await dbSave('kit', file); }
+		if (file) {
+			const entry = await loadKitFile(file);
+			if (entry) await saveKit(entry, file);
+		}
 		e.target.value = '';
 	});
 

@@ -3,13 +3,18 @@
 // ==================================================================================================
 
 import { state } from './state.js';
-import { ensureJSZip } from './utils.js';
+import { ensureJSZip, newDbKey } from './utils.js';
 import { setStatus } from './ui.js';
 import { parseSFZ } from './sfz-parser.js';
 import { initAudio } from './sample-player.js';
 
-/** Lê um arquivo .kit, extrai os .sfz disponíveis e adiciona/atualiza a lista de kits carregados. */
-export async function loadKitFile(file) {
+/**
+ * Lê um arquivo .kit, extrai os .sfz disponíveis e adiciona/atualiza a lista de kits carregados.
+ * Retorna a entrada criada (ou null se o kit for inválido).
+ * - dbKey: chave sob a qual o arquivo está salvo no IndexedDB (ao restaurar a sessão).
+ * - select: false = não reconstrói os selects (quem chama faz isso uma vez só no final).
+ */
+export async function loadKitFile(file, dbKey = null, select = true) {
 	await ensureJSZip();
 	setStatus(`Carregando kit: ${file.name}...`);
 	initAudio();
@@ -19,17 +24,53 @@ export async function loadKitFile(file) {
 		.filter(f => f.endsWith('.sfz'))
 		.sort();
 
-	if (sfzNames.length === 0) { setStatus('Kit inválido: nenhum .sfz encontrado'); return; }
+	if (sfzNames.length === 0) { setStatus('Kit inválido: nenhum .sfz encontrado'); return null; }
 
 	const name = file.name.replace(/\.kit$/i, '');
-	const entry = { name, sfzNames, zip };
+	const entry = { name, sfzNames, zip, dbKey };
 
 	const existing = state.kits.findIndex(k => k.name === name);
 	let targetIndex;
-	if (existing >= 0) { state.kits[existing] = entry; targetIndex = existing; }
-	else { state.kits.push(entry); targetIndex = state.kits.length - 1; }
+	if (existing >= 0) {
+		entry.dbKey = state.kits[existing].dbKey ?? dbKey; // mesmo nome = substitui (e reaproveita a chave salva)
+		state.kits[existing] = entry; targetIndex = existing;
+	} else {
+		state.kits.push(entry); targetIndex = state.kits.length - 1;
+	}
+	if (!entry.dbKey) entry.dbKey = newDbKey('kit');
 
-	updateKitSelect(targetIndex);
+	if (select) updateKitSelect(targetIndex);
+	return entry;
+}
+
+/**
+ * Remove um kit da lista (só da memória — quem chama apaga do IndexedDB, ver library.js).
+ * Se o kit removido era o que estava tocando em Rhythm/SubRhythm, esse canal cai para o padrão;
+ * quem não foi afetado mantém a seleção (os samples já decodificados continuam valendo).
+ */
+export function removeKit(index) {
+	if (index < 0 || index >= state.kits.length) return;
+
+	const keep = {};
+	for (const [role, id] of [['rhythm', 'kit-select-rhythm'], ['sub', 'kit-select-sub']]) {
+		const [ki, si] = document.getElementById(id).value.split(':').map(Number);
+		keep[role] = (!isNaN(ki) && ki !== index && state.kits[ki]) ? { entry: state.kits[ki], si } : null;
+	}
+
+	state.kits.splice(index, 1);
+
+	if (state.kits.length === 0) {
+		for (const buffers of [state.kitBuffers, state.kitBuffersSub]) {
+			Object.keys(buffers).forEach(k => delete buffers[k]);
+		}
+		state.kitLoaded = false; state.kitLoadedSub = false;
+		state.kitName = 'Load drumkit'; state.kitNameSub = 'Load drumkit';
+		state.activeKitIndex = -1; state.activeSfzIndex = 0; state.activeSfzIndexSub = 0;
+		updateKitSelect();
+		setStatus('Nenhum kit carregado.');
+		return;
+	}
+	updateKitSelect(-1, keep);
 }
 
 /** Decodifica os samples de um SFZ específico e os disponibiliza para o canal Rhythm ou SubRhythm. */
@@ -67,8 +108,11 @@ export async function applyKit(kitIndex, sfzIndex = 0, role = 'rhythm') {
 	setStatus(`${label} (${role}) - ${loaded} samples`);
 }
 
-/** Reconstrói os <select> de kit Rhythm/SubRhythm com todos os SFZ de todos os kits carregados. */
-export function updateKitSelect(targetIndex = -1) {
+/**
+ * Reconstrói os <select> de kit Rhythm/SubRhythm com todos os SFZ de todos os kits carregados.
+ * `keep` ({rhythm, sub}: { entry, si } ou null) preserva a seleção atual de cada canal, se informado.
+ */
+export function updateKitSelect(targetIndex = -1, keep = null) {
 	const selRhythm = document.getElementById('kit-select-rhythm');
 	const selSub = document.getElementById('kit-select-sub');
 	selRhythm.innerHTML = '';
@@ -110,8 +154,16 @@ export function updateKitSelect(targetIndex = -1) {
 	const first = allOptions[0];
 	const second = allOptions.length > 1 ? allOptions[1] : allOptions[0];
 
-	selRhythm.value = `${first.ki}:${first.si}`;
-	selSub.value = `${second.ki}:${second.si}`;
-	applyKit(first.ki, first.si, 'rhythm');
-	applyKit(second.ki, second.si, 'sub');
+	const pick = (role, fallback) => {
+		const k = keep?.[role];
+		const ki = k ? state.kits.indexOf(k.entry) : -1;
+		return ki >= 0 ? { ki, si: k.si, kept: true } : { ...fallback, kept: false };
+	};
+	const r = pick('rhythm', first);
+	const s = pick('sub', second);
+
+	selRhythm.value = `${r.ki}:${r.si}`;
+	selSub.value = `${s.ki}:${s.si}`;
+	if (r.kept) { state.activeSfzIndex = r.si; } else applyKit(r.ki, r.si, 'rhythm');
+	if (s.kept) { state.activeSfzIndexSub = s.si; } else applyKit(s.ki, s.si, 'sub');
 }

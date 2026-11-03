@@ -3,21 +3,25 @@
 // ==================================================================================================
 
 import { state } from './state.js';
-import { ensureJSZip } from './utils.js';
+import { ensureJSZip, newDbKey } from './utils.js';
 import { setStatus, updateUI } from './ui.js';
 import { parseMidi, extractDrumEvents } from './midi-parser.js';
 import { parseBeatUnit } from './style-engine.js';
 import { stopRecording, updateRecordUI } from './recorder.js';
 import { togglePlay } from './sample-player.js';
 
-/** Lê um arquivo .style, faz o parse do MIDI e do JSON de seções, e adiciona à lista de styles. */
-export async function loadStyleFile(file) {
+/**
+ * Lê um arquivo .style, faz o parse do MIDI e do JSON de seções, e adiciona à lista de styles.
+ * Retorna a entrada criada (ou null se o arquivo for inválido).
+ * dbKey: chave sob a qual o arquivo está salvo no IndexedDB (ao restaurar a sessão).
+ */
+export async function loadStyleFile(file, dbKey = null) {
 	await ensureJSZip();
 	setStatus(`Carregando estilo: ${file.name}...`);
 
 	const zip = await JSZip.loadAsync(file);
 	const jsonEntry = Object.values(zip.files).find(f => f.name.endsWith('.json'));
-	if (!jsonEntry) { setStatus('.json não encontrado'); return; }
+	if (!jsonEntry) { setStatus('.json não encontrado'); return null; }
 
 	const sd = JSON.parse(await jsonEntry.async('string'));
 
@@ -40,7 +44,7 @@ export async function loadStyleFile(file) {
 	}
 
 	const midEntry = Object.values(zip.files).find(f => f.name.endsWith('.mid'));
-	if (!midEntry) { setStatus('.mid não encontrado'); return; }
+	if (!midEntry) { setStatus('.mid não encontrado'); return null; }
 
 	const midi = parseMidi(await midEntry.async('arraybuffer'));
 	const ppq = midi.ppq;
@@ -58,21 +62,25 @@ export async function loadStyleFile(file) {
 		styleMidiEventsSub: eventsSub,
 		stylePPQ: ppq, beatsPerBar: bpb, beatType: bt, beatUnitFactor: buf,
 		drumChannels: dc, drumChannelsSub: dcSub, bpm: sd.bpm || state.bpm,
+		dbKey,
 	};
 
 	if (existing >= 0) {
+		entry.dbKey = state.styles[existing].dbKey ?? dbKey; // mesmo nome = substitui (e reaproveita a chave salva)
 		state.styles[existing] = entry;
 	} else {
 		state.styles.push(entry);
 	}
+	if (!entry.dbKey) entry.dbKey = newDbKey('style');
 
 	updateStyleSelect(false); // atualiza UI sem aplicar style
+	return entry;
 }
 
-/** Ativa o style pelo índice: copia seus dados para o `state` "atual" e reseta a posição de tela. */
-export function applyStyle(index) {
+/** Interrompe gravação e reprodução em andamento (trocar/remover o style invalida os dois). */
+function haltPerformance() {
 	if (state.isRecording) {
-		stopRecording(); // troca de style interrompe e exporta a gravação em andamento
+		stopRecording(); // interrompe e exporta a gravação em andamento
 	}
 	if (state.recordArmed) {
 		state.recordArmed = false;
@@ -82,6 +90,48 @@ export function applyStyle(index) {
 	if (state.isPlaying) {
 		togglePlay(); // Para a música se estiver tocando
 	}
+}
+
+/**
+ * Remove um style da lista (só da memória — quem chama apaga do IndexedDB, ver library.js).
+ * Se era o style ativo, passa para o vizinho; se era o último, o app volta ao estado "sem style".
+ */
+export function removeStyle(index) {
+	if (index < 0 || index >= state.styles.length) return;
+	const wasActive = index === state.activeStyleIndex;
+	if (wasActive) haltPerformance();
+
+	state.styles.splice(index, 1);
+	updateStyleSelect(false);
+	const sel = document.getElementById('style-select');
+
+	if (state.styles.length === 0) {
+		state.activeStyleIndex = -1;
+		state.styleLoaded = false;
+		state.styleName = 'Load style';
+		state.styleData = null;
+		state.styleMidiEvents = null;
+		state.styleMidiEventsSub = null;
+		state.barEvents = null;
+		state.barEventsSub = null;
+		updateUI();
+		setStatus('Nenhum style carregado.');
+		return;
+	}
+
+	if (wasActive) {
+		const target = Math.min(index, state.styles.length - 1);
+		sel.value = target;
+		applyStyle(target);
+	} else {
+		if (index < state.activeStyleIndex) state.activeStyleIndex--;
+		sel.value = state.activeStyleIndex;
+	}
+}
+
+/** Ativa o style pelo índice: copia seus dados para o `state` "atual" e reseta a posição de tela. */
+export function applyStyle(index) {
+	haltPerformance(); // troca de style interrompe a gravação/reprodução em andamento
 	if (index < 0 || index >= state.styles.length) return;
 	state.activeStyleIndex = index;
 	const s = state.styles[index];

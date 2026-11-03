@@ -49,6 +49,9 @@
 							<select id="style-select" title="Styles carregados"></select>
 							<button id="btn-add-style" class="load-btn" title="Adicionar style">Style</button>
 						</div>
+						<button id="btn-library" class="info-btn" title="Gerenciar styles e kits (excluir)">
+							<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 4h11M6 4V2.5h4V4M4 4l.7 9.5h6.6L12 4M6.5 7v4M9.5 7v4"/></svg>
+						</button>
 						<button id="btn-debug" class="info-btn" title="Info">i</button>
 					</div>
 				</div>
@@ -99,6 +102,17 @@
 			<button id="close-debug" class="close-btn">✕</button>
 			<h2>STYLE</h2>
 			<div id="debug-info"></div>
+		</div>
+	</div>
+
+	<div id="library-modal" class="debug-modal" style="display:none;">
+		<div class="debug-content library-content">
+			<button id="close-library" class="close-btn">✕</button>
+			<h2>BIBLIOTECA</h2>
+			<h3 class="library-title">Styles</h3>
+			<ul id="library-styles" class="library-list"></ul>
+			<h3 class="library-title">Kits</h3>
+			<ul id="library-kits" class="library-list"></ul>
 		</div>
 	</div>
 

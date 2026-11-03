@@ -78,3 +78,8 @@ export async function ensureJSZip() {
 	if (window.JSZip) return;
 	await loadScript('./assets/vendor/jszip.min.js');
 }
+
+/** Gera uma chave única pra um arquivo novo no IndexedDB (ex.: 'style:lq3k9x2ab1'). */
+export function newDbKey(prefix) {
+	return `${prefix}:${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+}

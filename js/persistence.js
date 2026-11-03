@@ -45,3 +45,16 @@ export async function dbLoad(key) {
 		});
 	} catch (e) { console.warn('dbLoad falhou:', e); return null; }
 }
+
+/** Remove um valor salvo. Nunca lança erro (só avisa no console). */
+export async function dbDelete(key) {
+	try {
+		const db = await openDB();
+		return new Promise((resolve, reject) => {
+			const tx = db.transaction(DB_STORE, 'readwrite');
+			tx.objectStore(DB_STORE).delete(key);
+			tx.oncomplete = resolve;
+			tx.onerror = e => reject(e.target.error);
+		});
+	} catch (e) { console.warn('dbDelete falhou:', e); }
+}

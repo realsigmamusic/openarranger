@@ -21,7 +21,7 @@ Ferramenta de acompanhamento musical open-source, web-based e offline-first para
 
 O OpenArranger emula teclados arranjadores físicos no navegador, com **zero latência de áudio** e funcionamento **100% offline** (PWA). Projetado para músicos solo que tocam ao vivo, permite o controle em tempo real de padrões de bateria não-lineares (Mains, Fills, Intros, Endings, Breaks) — e agora também **grava e exporta sua performance como MIDI quantizado**.
 
-[![Screenshot](screenshot.jpg)](screenshot.jpg)
+[![Screenshot](screenshot.png)](screenshot.png)
 
 ## Principais Recursos
 

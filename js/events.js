@@ -14,6 +14,7 @@ import { applyStyle, updateStyleSelect, loadStyleFile } from './style-loader.js'
 import { applyKit, loadKitFile } from './kit-loader.js';
 import { requestBpmChange, toggleRecording, toggleRecordingPlayback } from './recorder.js';
 import { processTap } from './tap-tempo.js';
+import { requestResync } from './resync.js';
 
 export function wireUpEvents() {
 	document.getElementById('volume-slider-rhythm').addEventListener('input', e => {
@@ -29,6 +30,7 @@ export function wireUpEvents() {
 		state.quantization = e.target.value;
 	});
 	document.getElementById('btn-play').addEventListener('click', togglePlay);
+	document.getElementById('btn-resync').addEventListener('click', requestResync);
 
 	const bpmInput = document.getElementById('bpm-display');
 

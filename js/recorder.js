@@ -29,6 +29,12 @@ export function logTempoChange(atTime) {
 	state.tempoChanges.push({ time: atTime ?? state.audioCtx.currentTime, bpm: state.bpm });
 }
 
+/** Registra uma troca de fórmula de compasso (ReSync) no histórico da gravação em andamento. */
+export function logTimeSigChange(atTime, num, den) {
+	if (!state.isRecording) return;
+	state.timeSigChanges.push({ time: atTime, num, den });
+}
+
 /**
  * Ponto único de entrada pra mudanças de BPM (tap tempo, +/-, input manual).
  * Durante uma gravação com a música tocando, a troca fica "armada" e só é aplicada
@@ -116,8 +122,17 @@ export function exportRecordingAsMidi() {
 		bucket.push({ tick: tickOn + gateTicks, note: ev.note, velocity: 0, channel: ev.channel, type: 'off' });
 	}
 
+	// Fórmulas de compasso: a inicial + os pares de trocas do ReSync. Se duas caem no mesmo tick
+	// (dois cortes seguidos), vale a última — o arquivo nunca tem duas fórmulas no mesmo instante.
+	const timeSigByTick = new Map();
+	timeSigByTick.set(0, { tick: 0, kind: 'timesig', num: state.recordTimeSig.num, beatType: state.recordTimeSig.beatType });
+	for (const ts of state.timeSigChanges) {
+		const tick = secondsToRecordedTicks(ts.time, ppq);
+		timeSigByTick.set(tick, { tick, kind: 'timesig', num: ts.num, beatType: ts.den });
+	}
+
 	const conductorEvents = [
-		{ tick: 0, kind: 'timesig', num: state.recordTimeSig.num, beatType: state.recordTimeSig.beatType },
+		...timeSigByTick.values(),
 		...state.tempoChanges.map(tc => ({ tick: secondsToRecordedTicks(tc.time, ppq), kind: 'tempo', bpm: tc.bpm })),
 	];
 

@@ -11,6 +11,7 @@ Ferramenta de acompanhamento musical open-source, web-based e offline-first para
 - [Visão Geral](#visão-geral)
 - [Principais Recursos](#principais-recursos)
 - [Gravação e Exportação MIDI](#gravação-e-exportação-midi)
+- [ReSync](#resync)
 - [Kit de Som (`.kit`)](#kit-de-som-kit)
 - [Estilo (`.style`)](#estilo-style)
 - [Boas Práticas para Criação de Estilos](#boas-práticas-para-criação-de-estilos)
@@ -26,30 +27,45 @@ O OpenArranger emula teclados arranjadores físicos no navegador, com **zero lat
 
 - **Interface focada em performance:** grade vertical ampla e ergonômica, otimizada para dispositivos móveis em ambiente de palco
 - **Quantização dinâmica:** transições no grid (compassos inteiros, metade ou ¼)
+- **ReSync:** corrige o compasso ao vivo com um toque, sem parar a música e sem mexer no BPM
 - **Motor de ritmo duplo:** canais independentes para Ritmo Principal e Sub-Ritmo, cada um com seleção de kit e controle de volume
 - **Motor de áudio com zero latência:** Web Audio API sincronizado
 - **Feedback visual e tátil:** botões antecipam a seção de destino; vibração confirma comandos (Android)
-- **Gravação ao vivo em MIDI:** registre toda a sua performance e exporte como arquivo `.mid` quantizado, com BPM e fórmula de compasso preservados
+- **Gravação ao vivo em MIDI:** registre toda a sua performance e exporte como arquivo `.mid` quantizado, com BPM e fórmula de compasso preservados (inclusive compassos curtos do ReSync)
 - **Reprodutor interno:** ouça a última gravação instantaneamente sem sair do app
 - **Padrões abertos:** arquivos MIDI, SFZ e JSON legíveis e editáveis
 - **Arquitetura desacoplada:** kits e estilos são intercambiáveis
 
 ## Gravação e Exportação MIDI
 
-A partir da v2.3.1, o OpenArranger inclui um **gravador de performance integrado**, acessível por dois botões na interface:
+O OpenArranger inclui um **gravador de performance integrado**, acessível por dois botões no cabeçalho:
 
+- **Gravar:** arma a gravação, que começa no próximo início de compasso (ou junto com o Start, se a música estiver parada). Com a gravação em andamento, tocar no botão encerra e exporta o arquivo `.mid` sem interromper a música.
+- **Tocar gravação:** reproduz a última gravação com os kits carregados, sem sair do app.
 
-## Principais Recursos
+O arquivo exportado é um MIDI Format 1 com:
 
-- **Interface focada em performance:** grade vertical ampla e ergonômica, projetada para dispositivos móveis e ambientes de palco.
-- **Quantização dinâmica:** transições suaves com execução em compasso inteiro, meio compasso ou um quarto de compasso.
-- **Motor de ritmo duplo:** canais independentes para Ritmo Principal e Sub Ritmo, cada um com seleção de kit e controle de volume.
-- **Motor de áudio com zero latência:** sincronismo preciso utilizando Web Audio API.
-- **Feedback visual:** botões de Intro, Fill e Break mostram antecipadamente a seção de destino.
-- **Padrões abertos:** utiliza arquivos MIDI padrão e formatos de texto legíveis.
-- **Arquitetura desacoplada:** kits de áudio e estilos são independentes e podem ser combinados livremente.
+- **Conductor:** mudanças de BPM e fórmula de compasso (inclusive os compassos curtos criados pelo [ReSync](#resync)).
+- **Rhythm** e **SubRhythm:** uma track para cada canal, com as notas quantizadas no grid.
 
----
+Mudanças de BPM feitas durante a gravação respeitam a quantização escolhida, para que o tempo gravado caia no grid junto com as notas.
+
+## ReSync
+
+Botão grande (embaixo, entre o Break e o Start) que corrige o compasso ao vivo, sem parar a música e sem mexer no BPM — útil quando a cantora entra errada ou a música quebra o compasso (ex.: um 2/4 no meio de um 4/4).
+
+- A bateria termina o tempo atual e o próximo tempo vira o "1" de um compasso novo; o corte respeita o grid (sempre um número inteiro de tempos).
+- Apertar no tempo 1, 2 ou 3 gera um compasso de 1, 2 ou 3 tempos (1/4, 2/4, 3/4). Apertar no último tempo não faz nada.
+- BPM e seção não mudam. Se houver Fill, Break ou Ending enfileirado, ele entra no novo "1".
+- Em seções com vários compassos, o compasso cortado conta como concluído e a música segue para o próximo; cortando o último, vale o fim normal da seção.
+- Em compassos compostos, o corte acontece no pulso definido por `beatUnit` (ex.: `"4."` em 6/8 gera 2 pulsos). Sem `beatUnit`, vale a semínima.
+- Na gravação MIDI, o compasso curto aparece de verdade: o arquivo registra a nova fórmula no início dele e a volta à fórmula original no compasso seguinte. Cada corte gera seu par de trocas; se dois cortes seguidos caem no mesmo instante, vale a última fórmula.
+
+**Observações**
+
+- O corte considera o tempo que você *ouve* (com a latência de saída do áudio descontada), não o que o app já agendou.
+- Notas já agendadas no áudio não podem ser recolhidas: se você apertar nos últimos ~100 ms de um tempo, o corte vai para o tempo seguinte. Se esse for o último tempo, o botão não faz nada e a barra de status avisa.
+- O ReSync só funciona com a música tocando.
 
 ## Kit de Som (.kit)
 
@@ -232,6 +248,8 @@ Exemplo:
 ```
 
 Quando omitido, o OpenArranger assume `4`.
+
+O `beatUnit` também define o pulso usado pelo [ReSync](#resync): em `6/8` com `"4."`, o compasso tem 2 pulsos e o corte gera um compasso de 3/8.
 
 ---
 

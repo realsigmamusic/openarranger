@@ -1,4 +1,4 @@
-const CACHE_NAME = '2.4.0';
+const CACHE_NAME = '2.5.0';
 const ASSETS = [
 	'./',
 	'./index.html',
@@ -12,6 +12,7 @@ const ASSETS = [
 	'./js/midi-writer.js',
 	'./js/persistence.js',
 	'./js/recorder.js',
+	'./js/resync.js',
 	'./js/sample-player.js',
 	'./js/scheduler.js',
 	'./js/session.js',

@@ -10,10 +10,10 @@
 
 import { state } from './state.js';
 import { SCHEDULE_AHEAD_TIME, LOOKAHEAD_MS } from './config.js';
-import { ticksToSeconds, getBarEvents, getBarEventsSub, sectionBarCount, autoRoute } from './style-engine.js';
+import { ticksToSeconds, getBarEvents, getBarEventsSub, sectionBarCount, autoRoute, timeSigForTicks } from './style-engine.js';
 import { updateUI, setStatus } from './ui.js';
 import { triggerSample, triggerSampleSub, scheduleStop } from './sample-player.js';
-import { logTempoChange, updateRecordUI } from './recorder.js';
+import { logTempoChange, logTimeSigChange, updateRecordUI } from './recorder.js';
 
 /**
  * Prepara o estado do scheduler para começar a tocar um compasso específico de uma seção.
@@ -23,6 +23,7 @@ import { logTempoChange, updateRecordUI } from './recorder.js';
 export function startBar(sectionName, barIndexInSection, startTime, entryTick = 0) {
 	state.currentSection = sectionName;
 	state.currentBarIndexInSection = barIndexInSection;
+	state.resyncCutTick = null; // um ReSync pendente vale só para o compasso em que foi pedido
 
 	// Se a gravação está armada, só começa efetivamente num início de compasso "de verdade"
 	// (entryTick 0) — garante que o tick 0 do MIDI exportado caia exatamente no grid.
@@ -32,6 +33,7 @@ export function startBar(sectionName, barIndexInSection, startTime, entryTick = 
 		state.recordStartTime = startTime;
 		state.recordEvents = [];
 		state.tempoChanges = [{ time: startTime, bpm: state.bpm }];
+		state.timeSigChanges = [];
 		state.recordTimeSig = { num: state.beatsPerBar, beatType: state.beatType };
 		state.recordBeatUnitFactor = state.beatUnitFactor;
 		updateRecordUI();
@@ -57,6 +59,17 @@ export function startBar(sectionName, barIndexInSection, startTime, entryTick = 
 }
 
 /**
+ * ReSync cortou o compasso: registra no MIDI gravado a fórmula do compasso curto (no início dele)
+ * e a volta à fórmula original (no compasso seguinte). `shortStart` é o início do compasso na grade.
+ */
+function logResyncTimeSigs(shortStart, nextStart, cutTick) {
+	if (!state.isRecording) return;
+	const ts = timeSigForTicks(cutTick);
+	logTimeSigChange(shortStart, ts.num, ts.den);
+	logTimeSigChange(nextStart, state.beatsPerBar, state.beatType);
+}
+
+/**
  * Loop principal, reagendado via setTimeout a cada LOOKAHEAD_MS. Cada chamada olha um pouco
  * à frente no tempo e agenda tudo que precisa: notas, mudança de BPM pendente, e a transição
  * de seção (respeitando a quantização escolhida pelo usuário).
@@ -67,12 +80,15 @@ export function scheduler() {
 	const horizon = state.audioCtx.currentTime + SCHEDULE_AHEAD_TIME;
 
 	while (true) {
+		// ReSync pendente: o compasso termina em resyncCutTick; nada a partir dele é tocado
+		const cutLimit = state.resyncCutTick ?? Infinity;
 		const tickTime = state.barStartTime + ticksToSeconds(state.barTickOffset);
 		if (tickTime >= horizon) break;
 
 		// Dispara todos os eventos Rhythm que caem no tick atual
 		while (state.eventIndex < state.barEvents.length &&
-			state.barEvents[state.eventIndex].relativeTick <= state.barTickOffset) {
+			state.barEvents[state.eventIndex].relativeTick <= state.barTickOffset &&
+			state.barEvents[state.eventIndex].relativeTick < cutLimit) {
 			const ev = state.barEvents[state.eventIndex++];
 			const evT = state.barStartTime + ticksToSeconds(ev.relativeTick);
 			triggerSample(ev.note, ev.velocity, evT);
@@ -80,7 +96,8 @@ export function scheduler() {
 		// Dispara todos os eventos SubRhythm que caem no tick atual
 		if (state.barEventsSub) {
 			while (state.eventIndexSub < state.barEventsSub.length &&
-				state.barEventsSub[state.eventIndexSub].relativeTick <= state.barTickOffset) {
+				state.barEventsSub[state.eventIndexSub].relativeTick <= state.barTickOffset &&
+				state.barEventsSub[state.eventIndexSub].relativeTick < cutLimit) {
 				const ev = state.barEventsSub[state.eventIndexSub++];
 				const evT = state.barStartTime + ticksToSeconds(ev.relativeTick);
 				triggerSampleSub(ev.note, ev.velocity, evT);
@@ -112,7 +129,8 @@ export function scheduler() {
 
 		// Verifica transição conforme quantização
 		const userQueued = (state.nextSection !== state.currentSection) ? state.nextSection : null;
-		const isMeasureEnd = state.barTickOffset + 1 >= state.barLengthTicks;
+		const isResyncEnd = state.resyncCutTick !== null && state.barTickOffset + 1 >= state.resyncCutTick;
+		const isMeasureEnd = isResyncEnd || state.barTickOffset + 1 >= state.barLengthTicks;
 		const halfTicks = Math.floor(state.barLengthTicks / 2);
 		const nextTick = state.barTickOffset + 1;
 		const isHalfEnd = !isMeasureEnd && (nextTick % halfTicks === 0) && nextTick > 0;
@@ -141,7 +159,8 @@ export function scheduler() {
 
 		// Quantização só se aplica a Fills - todo o resto usa 'measure'
 		const isFill = userQueued && userQueued.startsWith('Fill ');
-		const activeQuant = isFill ? state.quantization : 'measure';
+		// Com ReSync pendente, o Fill espera o novo "1" em vez da fronteira de quantização
+		const activeQuant = (isFill && state.resyncCutTick === null) ? state.quantization : 'measure';
 
 		// Decide se é hora de trocar agora
 		const shouldTransition = isMeasureEnd || (
@@ -154,8 +173,10 @@ export function scheduler() {
 
 		if (shouldTransition) {
 			state.barTickOffset++;
-			const cutTick = isMeasureEnd ? state.barLengthTicks : state.barTickOffset;
+			const cutTick = isResyncEnd ? state.resyncCutTick
+				: (isMeasureEnd ? state.barLengthTicks : state.barTickOffset);
 			const nextBarStart = state.barStartTime + ticksToSeconds(cutTick);
+			if (isResyncEnd) logResyncTimeSigs(state.barStartTime, nextBarStart, cutTick);
 
 			if (state.repeatCurrent) {
 				// Repetição forçada: reinicia a seção atual do compasso 0
@@ -194,7 +215,7 @@ export function scheduler() {
 		const nextEventTick = Math.min(nextRhythmTick, nextSubTick);
 
 		// Próxima fronteira de quantização relevante
-		let nextBoundary = state.barLengthTicks - 1; // padrão: fim do compasso
+		let nextBoundary = Math.min(state.barLengthTicks, state.resyncCutTick ?? Infinity) - 1; // padrão: fim do compasso (ou corte do ReSync)
 		if (userQueued) {
 			if (activeQuant === 'half') {
 				const nextHalf = Math.ceil((state.barTickOffset + 1) / halfTicks) * halfTicks - 1;

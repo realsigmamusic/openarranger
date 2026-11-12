@@ -88,3 +88,26 @@ export function parseBeatUnit(val) {
 	if (dotted) factor *= 1.5; // pontuada = 1.5x
 	return factor;
 }
+
+/** Converte segundos (relativos ao início do compasso) em ticks, no BPM atual. Inverso de ticksToSeconds. */
+export function secondsToTicks(sec) {
+	return sec * (state.bpm / 60) * state.stylePPQ * state.beatUnitFactor;
+}
+
+/** Duração de 1 pulso (tempo) em ticks, definida pelo beatUnit do style (sem beatUnit: semínima). */
+export function pulseTicks() {
+	return state.stylePPQ * state.beatUnitFactor;
+}
+
+/**
+ * Fórmula de compasso { num, den } equivalente a um compasso de `ticks` ticks.
+ * Começa pelo denominador do style e vai dobrando até o numerador ficar inteiro
+ * (ex.: 6/8 com pulso pontuado, corte de 1 pulso → 3/8).
+ */
+export function timeSigForTicks(ticks) {
+	for (let den = state.beatType; den <= 64; den *= 2) {
+		const n = ticks / (state.stylePPQ * 4 / den);
+		if (Math.round(n) > 0 && Math.abs(n - Math.round(n)) < 1e-6) return { num: Math.round(n), den };
+	}
+	return { num: Math.max(1, Math.round(ticks / (state.stylePPQ * 4 / state.beatType))), den: state.beatType };
+}

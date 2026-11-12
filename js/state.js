@@ -60,6 +60,7 @@ export const state = {
 	eventIndex: 0,               // próximo evento Rhythm a agendar
 	eventIndexSub: 0,            // próximo evento SubRhythm a agendar
 	currentBarIndexInSection: 0,
+	resyncCutTick: null,         // ReSync pendente: tick (dentro do compasso atual) onde o compasso termina
 
 	// --- Gravação de performance (exporta .mid) ---
 	isRecording: false,
@@ -69,6 +70,7 @@ export const state = {
 	recordEvents: [],            // { time, note, velocity, role, channel }
 	recordedEventsForPlayback: [],
 	tempoChanges: [],            // { time, bpm }
+	timeSigChanges: [],          // { time, num, den } — compassos curtos do ReSync
 	recordTimeSig: { num: 4, beatType: 4 },
 	recordBeatUnitFactor: 1,
 	pendingBpm: null,            // BPM aguardando fronteira de quantização

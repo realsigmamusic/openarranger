@@ -530,3 +530,27 @@ h1 {
 .library-del:disabled {
 	opacity: 0.4;
 }
+
+
+/* RESYNC */
+.resync-btn {
+	background: #d4c007;
+	/*color: white;*/
+	border: none;
+	border-radius: 0.5rem;
+	font-weight: bold;
+	font-size: 1rem;
+	cursor: pointer;
+	touch-action: manipulation;
+	transition: transform 0.1s;
+}
+
+.resync-btn:active {
+	transform: translateY(4px);
+	filter: brightness(1.2);
+}
+
+.resync-btn.pending {
+	box-shadow: 0 0 15px #ffeb3b;
+	outline: 3px solid #ffeb3b;
+}

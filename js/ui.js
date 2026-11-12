@@ -51,6 +51,8 @@ export function updateUI() {
 		if (queuedBtn) queuedBtn.classList.add('queued');
 	}
 
+	document.getElementById('btn-resync')?.classList.toggle('pending', state.resyncCutTick !== null);
+
 	updateSectionCounters();
 }
 
